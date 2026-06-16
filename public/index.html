@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Finance Splitter</title>
+  <style>
+    /* ============================================================
+       PLACEHOLDER STYLES — remove this whole <style> block when
+       merging with the real app's CSS. Keep only the sync styles
+       below the "CLOUD SYNC STYLES" comment.
+       ============================================================ */
+    :root {
+      --primary:       #2d6a4f;
+      --primary-dark:  #1b4332;
+      --primary-light: #52b788;
+      --accent:        #74c69d;
+      --bg:            #ffffff;
+      --surface:       #f8f9fa;
+      --text:          #212529;
+      --text-muted:    #6c757d;
+      --border:        #dee2e6;
+      --danger:        #dc3545;
+      --warning:       #e9c46a;
+      --success:       #198754;
+      --radius:        8px;
+    }
+    [data-theme="dark"] {
+      --bg:         #0d1117;
+      --surface:    #161b22;
+      --text:       #e6edf3;
+      --text-muted: #8b949e;
+      --border:     #30363d;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    .placeholder-banner {
+      background: var(--warning);
+      color: #1a1a1a;
+      padding: 12px 20px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .placeholder-banner strong { font-size: 14px; }
+    .placeholder-banner button {
+      margin-left: auto;
+      background: rgba(0,0,0,.15);
+      border: none;
+      border-radius: 4px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .placeholder-content {
+      max-width: 680px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    .placeholder-content h1 {
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+    .placeholder-content p { color: var(--text-muted); margin-bottom: 20px; }
+    .placeholder-code {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      font-family: monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      margin-bottom: 20px;
+    }
+
+    /* ============================================================
+       CLOUD SYNC STYLES — keep these when merging with real app
+       ============================================================ */
+    .cloud-sync-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-top: 32px;
+    }
+    .cloud-sync-section h2 {
+      font-size: 18px;
+      color: var(--primary-dark);
+      margin-bottom: 8px;
+    }
+    [data-theme="dark"] .cloud-sync-section h2 { color: var(--accent); }
+    .sync-description {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+    .sync-status-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .fs-sync-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .3px;
+    }
+    .fs-sync-local-only { background: #e9ecef; color: #495057; }
+    .fs-sync-connected  { background: #d1e7dd; color: #0a3622; }
+    .fs-sync-syncing    { background: #cfe2ff; color: #084298; }
+    .fs-sync-error      { background: #f8d7da; color: #58151c; }
+    [data-theme="dark"] .fs-sync-local-only { background: #2d3748; color: #a0aec0; }
+    [data-theme="dark"] .fs-sync-connected  { background: #1a4731; color: #68d391; }
+    [data-theme="dark"] .fs-sync-syncing    { background: #1a2e52; color: #63b3ed; }
+    [data-theme="dark"] .fs-sync-error      { background: #4a1519; color: #fc8181; }
+    .fs-sync-message {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .sync-token-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .sync-token-row label {
+      font-size: 13px;
+      font-weight: 500;
+      min-width: 80px;
+    }
+    .sync-token-row input {
+      flex: 1;
+      min-width: 200px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      font-family: monospace;
+    }
+    .sync-token-row input:focus {
+      outline: none;
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 2px rgba(82,183,136,.2);
+    }
+    .sync-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .btn {
+      padding: 7px 14px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: opacity .15s, background .15s;
+    }
+    .btn:hover { opacity: .87; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary  { background: var(--primary); color: #fff; }
+    .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+    .btn-danger   { background: var(--danger); color: #fff; }
+    .sync-last-synced {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       PLACEHOLDER BANNER — remove when real app HTML is merged in
+       ============================================================ -->
+  <div class="placeholder-banner" id="placeholder-banner">
+    <strong>⚠ PLACEHOLDER</strong>
+    Drop your Finance Splitter index.html content here, then integrate the Cloud Sync
+    section and &lt;script&gt; block at the bottom. See integration instructions below.
+    <button onclick="document.getElementById('placeholder-banner').style.display='none'">Dismiss</button>
+  </div>
+
+  <!-- ============================================================
+       PLACEHOLDER CONTENT — remove when real app HTML is merged in
+       ============================================================ -->
+  <div class="placeholder-content" id="placeholder-content">
+    <h1>Finance Splitter</h1>
+    <p>Cloud sync infrastructure is ready. Merge your app HTML to replace this placeholder.</p>
+
+    <div class="placeholder-code">Integration steps:
+1. Copy the full contents of your index.html into this file,
+   replacing the placeholder-banner and placeholder-content divs.
+
+2. In your Settings view, add this HTML block:
+   &lt;!-- BEGIN: Cloud Sync Settings (copy from cloud-sync-settings div below) --&gt;
+
+3. Keep the &lt;script&gt; block at the bottom of &lt;body&gt; exactly as-is.
+
+4. After any state-changing action in your app, call:
+   window.fsSyncTrigger()
+
+5. Confirm localStorage key names match STATE_KEYS in the script,
+   or update STATE_KEYS to auto-collect everything (see comment in script).</div>
+
+    <p>While this placeholder is active, you can still test cloud sync below:</p>
+  </div>
+
+  <!-- ============================================================
+       CLOUD SYNC SETTINGS SECTION
+       Integrate this into your existing Settings view.
+       The element IDs must match exactly for the script to wire up.
+       ============================================================ -->
+  <div class="placeholder-content">
+    <div class="cloud-sync-section" id="cloud-sync-settings">
+      <h2>Cloud Sync</h2>
+      <p class="sync-description">
+        Your Amex CSV is parsed in your browser. Finance Splitter only syncs normalized app
+        data like transactions, rules, settings, and past statements. It does not upload or
+        store the original CSV file.
+      </p>
+
+      <div class="sync-status-row">
+        <span id="fs-sync-badge" class="fs-sync-badge fs-sync-local-only">Local only</span>
+        <span id="fs-sync-message" class="fs-sync-message"></span>
+      </div>
+
+      <div class="sync-token-row">
+        <label for="fs-sync-token-input">Sync Token</label>
+        <input
+          type="password"
+          id="fs-sync-token-input"
+          placeholder="Paste your SHARED_SECRET sync token"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button id="fs-sync-save-btn" class="btn btn-primary">Save Token</button>
+      </div>
+
+      <div class="sync-actions">
+        <button id="fs-sync-test-btn"  class="btn btn-secondary">Test Connection</button>
+        <button id="fs-sync-pull-btn"  class="btn btn-secondary">Pull from Cloud</button>
+        <button id="fs-sync-push-btn"  class="btn btn-secondary">Push to Cloud</button>
+        <button id="fs-sync-clear-btn" class="btn btn-danger">Clear Sync Token</button>
+      </div>
+
+      <p id="fs-last-synced" class="sync-last-synced">Not yet synced</p>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       CLOUD SYNC SCRIPT — keep at bottom of <body> in real app
+       ============================================================ -->
+  <script>
+    (function FinanceSplitterSync() {
+      'use strict';
+
+      // ── Constants ─────────────────────────────────────────────
+      const APP_NAME       = 'Finance Splitter';
+      const SCHEMA_VERSION = 1;
+      const SYNC_TOKEN_KEY = 'fs_sync_token';
+      const DEVICE_ID_KEY  = 'fs_device_id';
+      const LAST_SYNCED_KEY = 'fs_last_synced';
+      const DEBOUNCE_MS    = 2500;
+
+      // ── State keys to sync ────────────────────────────────────
+      // OPTION A (explicit): list the exact localStorage keys your app uses.
+      // Update these to match the real app once you know the key names.
+      //
+      // OPTION B (auto-collect): set EXPLICIT_KEYS = null and the module
+      // will collect ALL localStorage entries except its own sync keys.
+      // This is safe for a personal app and requires no key-name knowledge.
+      //
+      // Currently using OPTION B so the module works before key names are known.
+      const EXPLICIT_KEYS = null; // set to an array of strings to use OPTION A
+
+      // Sync-module-private keys excluded from state collection
+      const PRIVATE_KEYS = new Set([SYNC_TOKEN_KEY, DEVICE_ID_KEY, LAST_SYNCED_KEY]);
+
+      let debounceTimer = null;
+      let currentStatus = 'local-only';
+
+      // ── Device ID ─────────────────────────────────────────────
+      function generateDeviceId() {
+        let id = localStorage.getItem(DEVICE_ID_KEY);
+        if (!id) {
+          id = 'dev-' + Math.random().toString(36).slice(2, 10) + '-' + Date.now().toString(36);
+          localStorage.setItem(DEVICE_ID_KEY, id);
+        }
+        return id;
+      }
+
+      // ── Token management ──────────────────────────────────────
+      function getSyncToken()   { return localStorage.getItem(SYNC_TOKEN_KEY) || null; }
+      function clearSyncToken() { localStorage.removeItem(SYNC_TOKEN_KEY); }
+
+      function setSyncToken(token) {
+        const t = (token || '').trim();
+        if (!t) return false;
+        localStorage.setItem(SYNC_TOKEN_KEY, t);
+        return true;
+      }
+
+      // ── State collection ──────────────────────────────────────
+      function getFullAppState() {
+        const payload = {};
+
+        if (EXPLICIT_KEYS) {
+          // OPTION A
+          for (const key of EXPLICIT_KEYS) {
+            const raw = localStorage.getItem(key);
+            if (raw !== null) {
+              try { payload[key] = JSON.parse(raw); } catch { payload[key] = raw; }
+            }
+          }
+        } else {
+          // OPTION B — collect everything except private sync keys
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && !PRIVATE_KEYS.has(key)) {
+              const raw = localStorage.getItem(key);
+              if (raw !== null) {
+                try { payload[key] = JSON.parse(raw); } catch { payload[key] = raw; }
+              }
+            }
+          }
+        }
+
+        return {
+          appName:        APP_NAME,
+          schemaVersion:  SCHEMA_VERSION,
+          updatedAt:      new Date().toISOString(),
+          deviceId:       generateDeviceId(),
+          lastSyncSource: 'local',
+          ...payload,
+        };
+      }
+
+      function applyFullAppState(state) {
+        if (!state || typeof state !== 'object') return;
+        const META = new Set(['appName', 'schemaVersion', 'updatedAt', 'deviceId', 'lastSyncSource']);
+        const keys = EXPLICIT_KEYS || Object.keys(state).filter(k => !META.has(k) && !PRIVATE_KEYS.has(k));
+
+        for (const key of keys) {
+          if (key in state) {
+            try {
+              const val = typeof state[key] === 'string' ? state[key] : JSON.stringify(state[key]);
+              localStorage.setItem(key, val);
+            } catch { /* quota exceeded or private */ }
+          }
+        }
+        if (state.updatedAt) localStorage.setItem(LAST_SYNCED_KEY, state.updatedAt);
+      }
+
+      // ── Merge logic ───────────────────────────────────────────
+      function mergeCloudStateIntoLocal(cloudState) {
+        if (!cloudState) return;
+
+        const hasLocal = (() => {
+          const syncKeys = new Set([...PRIVATE_KEYS]);
+          for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            if (k && !syncKeys.has(k)) return true;
+          }
+          return false;
+        })();
+
+        // Cloud exists, nothing local — use cloud
+        if (!hasLocal) {
+          applyFullAppState(cloudState);
+          setSyncStatus('connected', 'Loaded state from cloud.');
+          return;
+        }
+
+        const cloudMs = cloudState.updatedAt ? Date.parse(cloudState.updatedAt) : 0;
+        const localMs = (() => {
+          const t = localStorage.getItem(LAST_SYNCED_KEY);
+          // Fall back to scanning stored state for updatedAt
+          return t ? Date.parse(t) : 0;
+        })();
+
+        if (cloudMs > localMs) {
+          applyFullAppState(cloudState);
+          setSyncStatus('connected', 'Cloud state was newer — applied.');
+        } else if (localMs > cloudMs) {
+          setSyncStatus('connected', 'Local state is newer. Push to cloud to sync.');
+        } else if (!cloudState.updatedAt) {
+          setSyncStatus('connected', 'Warning: cloud state has no timestamp — keeping local.');
+        } else {
+          setSyncStatus('connected', 'In sync.');
+        }
+      }
+
+      // ── API calls ─────────────────────────────────────────────
+      async function pullCloudState() {
+        const token = getSyncToken();
+        if (!token) { setSyncStatus('local-only', ''); return null; }
+
+        setSyncStatus('syncing', 'Pulling from cloud…');
+        try {
+          const res = await fetch('/api/get-state', {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          if (res.status === 401) { setSyncStatus('error', 'Invalid sync token.'); return null; }
+          if (!res.ok)            { setSyncStatus('error', `Server error ${res.status}.`); return null; }
+          const data = await res.json();
+          setSyncStatus('connected', 'Pull complete.');
+          return data.state || null;
+        } catch {
+          setSyncStatus('error', 'Network error pulling state.');
+          return null;
+        }
+      }
+
+      async function pushCloudState() {
+        const token = getSyncToken();
+        if (!token) { setSyncStatus('local-only', ''); return false; }
+
+        setSyncStatus('syncing', 'Pushing to cloud…');
+        try {
+          const state = getFullAppState();
+          const res = await fetch('/api/save-state', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(state),
+          });
+          if (res.status === 401) { setSyncStatus('error', 'Invalid sync token.'); return false; }
+          if (res.status === 413) { setSyncStatus('error', 'State too large to sync.'); return false; }
+          if (!res.ok)            { setSyncStatus('error', `Server error ${res.status}.`); return false; }
+          const data = await res.json();
+          localStorage.setItem(LAST_SYNCED_KEY, data.savedAt);
+          setSyncStatus('connected', `Saved at ${new Date(data.savedAt).toLocaleTimeString()}.`);
+          updateLastSyncedDisplay();
+          return true;
+        } catch {
+          setSyncStatus('error', 'Network error pushing state.');
+          return false;
+        }
+      }
+
+      function scheduleCloudSync() {
+        if (!getSyncToken()) return;
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => { pushCloudState(); }, DEBOUNCE_MS);
+      }
+
+      async function testCloudConnection() {
+        const token = getSyncToken();
+        if (!token) { setSyncStatus('local-only', 'No sync token set.'); return false; }
+
+        setSyncStatus('syncing', 'Testing connection…');
+        try {
+          const res = await fetch('/api/get-state', {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          if (res.status === 401) { setSyncStatus('error', 'Invalid sync token.'); return false; }
+          if (!res.ok)            { setSyncStatus('error', `Server error ${res.status}.`); return false; }
+          setSyncStatus('connected', 'Connection OK.');
+          return true;
+        } catch {
+          setSyncStatus('error', 'Network error — is Vercel running?');
+          return false;
+        }
+      }
+
+      // ── Status UI ─────────────────────────────────────────────
+      function setSyncStatus(status, message) {
+        currentStatus = status;
+        const badge = document.getElementById('fs-sync-badge');
+        const msg   = document.getElementById('fs-sync-message');
+        if (badge) {
+          const LABELS = {
+            'local-only': 'Local only',
+            'connected':  'Connected',
+            'syncing':    'Syncing…',
+            'error':      'Sync failed',
+          };
+          badge.className = `fs-sync-badge fs-sync-${status}`;
+          badge.textContent = LABELS[status] || status;
+        }
+        if (msg) msg.textContent = message || '';
+      }
+
+      function updateLastSyncedDisplay() {
+        const el = document.getElementById('fs-last-synced');
+        if (!el) return;
+        const t = localStorage.getItem(LAST_SYNCED_KEY);
+        el.textContent = t
+          ? `Last synced: ${new Date(t).toLocaleString()}`
+          : 'Not yet synced';
+      }
+
+      // ── Settings UI wiring ────────────────────────────────────
+      function wireSyncUI() {
+        const tokenInput = document.getElementById('fs-sync-token-input');
+        const saveBtn    = document.getElementById('fs-sync-save-btn');
+        const testBtn    = document.getElementById('fs-sync-test-btn');
+        const pullBtn    = document.getElementById('fs-sync-pull-btn');
+        const pushBtn    = document.getElementById('fs-sync-push-btn');
+        const clearBtn   = document.getElementById('fs-sync-clear-btn');
+
+        if (tokenInput && getSyncToken()) {
+          tokenInput.value = '••••••••••••••••••••';
+          tokenInput.dataset.masked = 'true';
+        }
+
+        if (tokenInput) {
+          tokenInput.addEventListener('focus', () => {
+            if (tokenInput.dataset.masked === 'true') { tokenInput.value = ''; tokenInput.dataset.masked = 'false'; }
+          });
+          tokenInput.addEventListener('blur', () => {
+            if (!tokenInput.value && getSyncToken()) {
+              tokenInput.value = '••••••••••••••••••••';
+              tokenInput.dataset.masked = 'true';
+            }
+          });
+        }
+
+        if (saveBtn) {
+          saveBtn.addEventListener('click', async () => {
+            const val = (tokenInput?.value || '').trim();
+            if (!val || val.startsWith('•')) {
+              alert('Please paste a new sync token first.');
+              return;
+            }
+            setSyncToken(val);
+            if (tokenInput) { tokenInput.value = '••••••••••••••••••••'; tokenInput.dataset.masked = 'true'; }
+            await testCloudConnection();
+            updateLastSyncedDisplay();
+          });
+        }
+
+        testBtn  && testBtn .addEventListener('click', () => testCloudConnection());
+        pushBtn  && pushBtn .addEventListener('click', () => pushCloudState());
+
+        if (pullBtn) {
+          pullBtn.addEventListener('click', async () => {
+            const state = await pullCloudState();
+            if (state) { mergeCloudStateIntoLocal(state); updateLastSyncedDisplay(); }
+          });
+        }
+
+        if (clearBtn) {
+          clearBtn.addEventListener('click', () => {
+            if (!confirm('Clear sync token? The app will revert to local-only mode.')) return;
+            clearSyncToken();
+            if (tokenInput) { tokenInput.value = ''; tokenInput.dataset.masked = 'false'; }
+            setSyncStatus('local-only', 'Sync token cleared.');
+            updateLastSyncedDisplay();
+          });
+        }
+      }
+
+      // ── Boot ──────────────────────────────────────────────────
+      async function boot() {
+        generateDeviceId();
+        updateLastSyncedDisplay();
+
+        const token = getSyncToken();
+        if (!token) { setSyncStatus('local-only', ''); return; }
+
+        const cloudState = await pullCloudState();
+        if (cloudState) mergeCloudStateIntoLocal(cloudState);
+        updateLastSyncedDisplay();
+      }
+
+      // ── Public API (call from your app code) ──────────────────
+      window.fsSyncTrigger   = scheduleCloudSync;   // call after any state change
+      window.fsPushState     = pushCloudState;
+      window.fsPullState     = pullCloudState;
+      window.fsTestSync      = testCloudConnection;
+      window.fsGetSyncStatus = () => currentStatus;
+
+      // Also expose the full sync object for advanced use
+      window.FinanceSplitterSync = {
+        pull:          pullCloudState,
+        push:          pushCloudState,
+        test:          testCloudConnection,
+        trigger:       scheduleCloudSync,
+        getState:      getFullAppState,
+        applyState:    applyFullAppState,
+        mergeState:    mergeCloudStateIntoLocal,
+        getToken:      getSyncToken,
+        setToken:      setSyncToken,
+        clearToken:    clearSyncToken,
+        getStatus:     () => currentStatus,
+        setStatus:     setSyncStatus,
+        generateDeviceId,
+      };
+
+      // Wire up after DOM is ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => { wireSyncUI(); boot(); });
+      } else {
+        wireSyncUI();
+        boot();
+      }
+    })();
+  </script>
+
+</body>
+</html>

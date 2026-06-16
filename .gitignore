@@ -1,0 +1,16 @@
+.env
+.env.local
+.DS_Store
+node_modules/
+.vercel/
+*.csv
+*.xlsx
+*.xls
+*.pdf
+*.ofx
+*.qfx
+*.qif
+exports/
+uploads/
+statements/
+samples/private/
