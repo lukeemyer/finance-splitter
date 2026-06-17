@@ -1,620 +1,2068 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="forest" data-mode="light">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Finance Splitter</title>
-  <style>
-    /* ============================================================
-       PLACEHOLDER STYLES — remove this whole <style> block when
-       merging with the real app's CSS. Keep only the sync styles
-       below the "CLOUD SYNC STYLES" comment.
-       ============================================================ */
-    :root {
-      --primary:       #2d6a4f;
-      --primary-dark:  #1b4332;
-      --primary-light: #52b788;
-      --accent:        #74c69d;
-      --bg:            #ffffff;
-      --surface:       #f8f9fa;
-      --text:          #212529;
-      --text-muted:    #6c757d;
-      --border:        #dee2e6;
-      --danger:        #dc3545;
-      --warning:       #e9c46a;
-      --success:       #198754;
-      --radius:        8px;
-    }
-    [data-theme="dark"] {
-      --bg:         #0d1117;
-      --surface:    #161b22;
-      --text:       #e6edf3;
-      --text-muted: #8b949e;
-      --border:     #30363d;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      line-height: 1.5;
-    }
-    .placeholder-banner {
-      background: var(--warning);
-      color: #1a1a1a;
-      padding: 12px 20px;
-      font-size: 13px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .placeholder-banner strong { font-size: 14px; }
-    .placeholder-banner button {
-      margin-left: auto;
-      background: rgba(0,0,0,.15);
-      border: none;
-      border-radius: 4px;
-      padding: 4px 10px;
-      cursor: pointer;
-      font-size: 12px;
-    }
-    .placeholder-content {
-      max-width: 680px;
-      margin: 40px auto;
-      padding: 0 20px;
-    }
-    .placeholder-content h1 {
-      color: var(--primary);
-      margin-bottom: 8px;
-    }
-    .placeholder-content p { color: var(--text-muted); margin-bottom: 20px; }
-    .placeholder-code {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 16px;
-      font-family: monospace;
-      font-size: 13px;
-      line-height: 1.6;
-      white-space: pre-wrap;
-      margin-bottom: 20px;
-    }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Finance Splitter</title>
+<style>
+/* =========================================================================
+   Finance Splitter — single-file prototype
+   All CSS, HTML and JS live in this one file (no build step, no backend).
+   Theming uses CSS variables driven by [data-theme] and [data-mode] on <html>.
+   ========================================================================= */
 
-    /* ============================================================
-       CLOUD SYNC STYLES — keep these when merging with real app
-       ============================================================ */
-    .cloud-sync-section {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 24px;
-      margin-top: 32px;
-    }
-    .cloud-sync-section h2 {
-      font-size: 18px;
-      color: var(--primary-dark);
-      margin-bottom: 8px;
-    }
-    [data-theme="dark"] .cloud-sync-section h2 { color: var(--accent); }
-    .sync-description {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-bottom: 20px;
-      line-height: 1.6;
-    }
-    .sync-status-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-    .fs-sync-badge {
-      display: inline-block;
-      padding: 3px 10px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: .3px;
-    }
-    .fs-sync-local-only { background: #e9ecef; color: #495057; }
-    .fs-sync-connected  { background: #d1e7dd; color: #0a3622; }
-    .fs-sync-syncing    { background: #cfe2ff; color: #084298; }
-    .fs-sync-error      { background: #f8d7da; color: #58151c; }
-    [data-theme="dark"] .fs-sync-local-only { background: #2d3748; color: #a0aec0; }
-    [data-theme="dark"] .fs-sync-connected  { background: #1a4731; color: #68d391; }
-    [data-theme="dark"] .fs-sync-syncing    { background: #1a2e52; color: #63b3ed; }
-    [data-theme="dark"] .fs-sync-error      { background: #4a1519; color: #fc8181; }
-    .fs-sync-message {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-    .sync-token-row {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-    }
-    .sync-token-row label {
-      font-size: 13px;
-      font-weight: 500;
-      min-width: 80px;
-    }
-    .sync-token-row input {
-      flex: 1;
-      min-width: 200px;
-      padding: 8px 12px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--bg);
-      color: var(--text);
-      font-size: 13px;
-      font-family: monospace;
-    }
-    .sync-token-row input:focus {
-      outline: none;
-      border-color: var(--primary-light);
-      box-shadow: 0 0 0 2px rgba(82,183,136,.2);
-    }
-    .sync-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-    .btn {
-      padding: 7px 14px;
-      border-radius: var(--radius);
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      border: none;
-      transition: opacity .15s, background .15s;
-    }
-    .btn:hover { opacity: .87; }
-    .btn:disabled { opacity: .5; cursor: not-allowed; }
-    .btn-primary  { background: var(--primary); color: #fff; }
-    .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
-    .btn-danger   { background: var(--danger); color: #fff; }
-    .sync-last-synced {
-      font-size: 12px;
-      color: var(--text-muted);
-      font-style: italic;
-    }
-  </style>
+/* ---------- Base reset ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  transition: background .25s ease, color .25s ease;
+  -webkit-font-smoothing: antialiased;
+}
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; font-size: 14px; }
+h1, h2, h3, h4 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
+a { color: var(--accent); }
+
+/* ---------- Neutral palettes (carefully chosen, not just inverted) ---------- */
+[data-mode="light"] {
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --surface-hover: #f1f5f9;
+  --border: #e3e8ee;
+  --border-strong: #d3dbe4;
+  --text: #1a2230;
+  --text-muted: #64748b;
+  --text-faint: #94a3b8;
+  --shadow: 0 1px 2px rgba(16,24,40,.04), 0 4px 16px rgba(16,24,40,.06);
+  --shadow-lg: 0 8px 30px rgba(16,24,40,.12);
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+  --warn: #b45309;
+  --warn-soft: #fffbeb;
+  --ok: #15803d;
+  --ok-soft: #f0fdf4;
+}
+[data-mode="dark"] {
+  --bg: #0e1117;
+  --surface: #171b23;
+  --surface-2: #1c212b;
+  --surface-hover: #232936;
+  --border: #2a313d;
+  --border-strong: #38414f;
+  --text: #e7ecf3;
+  --text-muted: #9aa6b8;
+  --text-faint: #6b7686;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.35);
+  --shadow-lg: 0 10px 36px rgba(0,0,0,.5);
+  --danger: #f87171;
+  --danger-soft: #2a1517;
+  --warn: #fbbf24;
+  --warn-soft: #2a2210;
+  --ok: #4ade80;
+  --ok-soft: #11241a;
+}
+
+/* ---------- Theme accent colors (light) ---------- */
+[data-theme="forest"][data-mode="light"] { --accent:#1f7a4d; --accent-strong:#176239; --accent-soft:#e6f4ec; --on-accent:#ffffff; }
+[data-theme="blue"][data-mode="light"]   { --accent:#2563eb; --accent-strong:#1d4ed8; --accent-soft:#e7efff; --on-accent:#ffffff; }
+[data-theme="purple"][data-mode="light"] { --accent:#7c3aed; --accent-strong:#6d28d9; --accent-soft:#f1e9fe; --on-accent:#ffffff; }
+[data-theme="rose"][data-mode="light"]   { --accent:#e11d63; --accent-strong:#be1250; --accent-soft:#fde7ef; --on-accent:#ffffff; }
+[data-theme="slate"][data-mode="light"]  { --accent:#475569; --accent-strong:#334155; --accent-soft:#eaeef3; --on-accent:#ffffff; }
+[data-theme="amber"][data-mode="light"]  { --accent:#d97706; --accent-strong:#b45309; --accent-soft:#fdf0db; --on-accent:#ffffff; }
+
+/* ---------- Theme accent colors (dark — tuned for contrast on dark bg) ---------- */
+[data-theme="forest"][data-mode="dark"] { --accent:#34d399; --accent-strong:#10b981; --accent-soft:#10271f; --on-accent:#04130c; }
+[data-theme="blue"][data-mode="dark"]   { --accent:#60a5fa; --accent-strong:#3b82f6; --accent-soft:#12233d; --on-accent:#04122a; }
+[data-theme="purple"][data-mode="dark"] { --accent:#a78bfa; --accent-strong:#8b5cf6; --accent-soft:#221638; --on-accent:#14072b; }
+[data-theme="rose"][data-mode="dark"]   { --accent:#fb7185; --accent-strong:#f43f5e; --accent-soft:#321319; --on-accent:#2a060d; }
+[data-theme="slate"][data-mode="dark"]  { --accent:#94a3b8; --accent-strong:#cbd5e1; --accent-soft:#222834; --on-accent:#0b0f16; }
+[data-theme="amber"][data-mode="dark"]  { --accent:#fbbf24; --accent-strong:#f59e0b; --accent-soft:#2a2008; --on-accent:#231902; }
+
+/* ---------- Layout ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; gap: 16px;
+  padding: 12px 24px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 750; font-size: 18px; letter-spacing: -0.02em; }
+.brand .logo {
+  width: 30px; height: 30px; border-radius: 9px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  display: grid; place-items: center; color: var(--on-accent); font-size: 16px; box-shadow: var(--shadow);
+}
+.topbar .spacer { flex: 1; }
+.icon-btn {
+  width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text); font-size: 16px; display: grid; place-items: center;
+  transition: background .15s, border-color .15s;
+}
+.icon-btn:hover { background: var(--surface-hover); border-color: var(--border-strong); }
+
+.theme-dots { display: flex; gap: 6px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.theme-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: transform .12s; }
+.theme-dot:hover { transform: scale(1.15); }
+.theme-dot.active { border-color: var(--text); }
+.dot-forest{background:#1f7a4d;} .dot-blue{background:#2563eb;} .dot-purple{background:#7c3aed;}
+.dot-rose{background:#e11d63;} .dot-slate{background:#475569;} .dot-amber{background:#d97706;}
+
+.shell { display: flex; max-width: 1400px; margin: 0 auto; }
+.sidebar {
+  width: 220px; flex-shrink: 0; padding: 20px 14px;
+  position: sticky; top: 63px; align-self: flex-start; height: calc(100vh - 63px);
+}
+.nav-item {
+  display: flex; align-items: center; gap: 11px; width: 100%; text-align: left;
+  padding: 10px 14px; margin-bottom: 4px; border-radius: 10px; border: none;
+  background: transparent; color: var(--text-muted); font-size: 14.5px; font-weight: 550;
+  transition: background .15s, color .15s;
+}
+.nav-item:hover { background: var(--surface-hover); color: var(--text); }
+.nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 650; }
+.nav-item .ni-ico { width: 20px; text-align: center; }
+.nav-item .badge-count {
+  margin-left: auto; background: var(--accent); color: var(--on-accent);
+  font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; min-width: 20px; text-align: center;
+}
+
+.content { flex: 1; padding: 24px 28px 80px; min-width: 0; }
+.view { display: none; animation: fade .2s ease; }
+.view.active { display: block; }
+@keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.view-head { margin-bottom: 22px; }
+.view-head h2 { font-size: 24px; }
+.view-head p { margin: 4px 0 0; color: var(--text-muted); font-size: 14.5px; }
+
+/* ---------- Cards ---------- */
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  box-shadow: var(--shadow); padding: 20px;
+}
+.stat-card { transition: transform .12s ease, box-shadow .12s ease; }
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+button:focus:not(:focus-visible) { outline: none; }
+.grid { display: grid; gap: 16px; }
+.stat-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); margin-bottom: 18px; }
+.stat-card .stat-label { font-size: 12.5px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.stat-card .stat-value { font-size: 27px; font-weight: 750; margin-top: 6px; letter-spacing: -0.02em; }
+.stat-card .stat-sub { font-size: 12.5px; color: var(--text-faint); margin-top: 2px; }
+.stat-card.hero { background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: var(--on-accent); border: none; }
+.stat-card.hero .stat-label, .stat-card.hero .stat-sub { color: color-mix(in srgb, var(--on-accent) 80%, transparent); }
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 10px 16px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text); font-size: 14px; font-weight: 600;
+  transition: background .15s, border-color .15s, transform .05s;
+}
+.btn:hover { background: var(--surface-hover); border-color: var(--border-strong); }
+.btn:active { transform: translateY(1px); }
+.btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.btn.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+.btn.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, var(--border)); }
+.btn.danger:hover { background: var(--danger-soft); }
+.btn.ghost { background: transparent; border-color: transparent; }
+.btn.ghost:hover { background: var(--surface-hover); }
+.btn.big { padding: 16px 22px; font-size: 15.5px; border-radius: 14px; }
+.btn.sm { padding: 6px 11px; font-size: 12.5px; border-radius: 8px; }
+.btn.block { width: 100%; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* ---------- Badges ---------- */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 650; white-space: nowrap;
+}
+.badge.review { background: var(--warn-soft); color: var(--warn); }
+.badge.reviewed { background: var(--ok-soft); color: var(--ok); }
+.badge.excluded { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+.badge.processed { background: var(--accent-soft); color: var(--accent); }
+.badge.nonexpense { background: var(--surface-2); color: var(--text-faint); border: 1px solid var(--border); }
+.badge.shared { background: var(--accent-soft); color: var(--accent); }
+
+/* ---------- Progress ---------- */
+.progress { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; border: 1px solid var(--border); }
+.progress > div { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-strong)); border-radius: 999px; transition: width .35s ease; }
+
+/* ---------- Upload ---------- */
+.dropzone {
+  border: 2px dashed var(--border-strong); border-radius: 16px; padding: 46px 20px; text-align: center;
+  background: var(--surface-2); transition: background .15s, border-color .15s; cursor: pointer;
+}
+.dropzone:hover, .dropzone.drag { border-color: var(--accent); background: var(--accent-soft); }
+.dropzone .dz-ico { font-size: 42px; }
+.dropzone h3 { margin-top: 10px; }
+.dropzone p { color: var(--text-muted); margin: 6px 0 0; }
+
+/* ---------- Tables ---------- */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: middle; }
+th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); font-weight: 650; background: var(--surface-2); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: var(--surface-hover); }
+tr.row-review { box-shadow: inset 3px 0 0 var(--warn); }
+tr.row-processed, tr.row-nonexpense { opacity: .58; }
+tr.row-excluded { opacity: .68; }
+.num { font-variant-numeric: tabular-nums; }
+.compact th, .compact td { padding: 7px 12px; }
+.merchant-name { font-weight: 650; }
+.merchant-desc { font-size: 12px; color: var(--text-faint); max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* quick split buttons — large and easy to tap */
+.splitbar { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.splitbar button {
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted);
+  padding: 7px 11px; border-radius: 8px; font-size: 13px; font-weight: 650; min-width: 40px;
+  transition: background .12s, color .12s, border-color .12s, transform .05s;
+}
+.splitbar button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.splitbar button:active { transform: translateY(1px); }
+.splitbar button.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); box-shadow: var(--shadow); }
+.splitbar button.ex.on { background: var(--text-muted); border-color: var(--text-muted); color: var(--surface); }
+.compact .splitbar button { padding: 5px 9px; min-width: 34px; font-size: 12px; }
+
+/* ---------- Toolbar / filters ---------- */
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+.input, select.input { padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); }
+.input:focus, select.input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.search { flex: 1; min-width: 180px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); font-size: 12.5px; font-weight: 600; }
+.chip:hover { background: var(--surface-hover); }
+.chip.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+
+/* ---------- Sticky review summary ---------- */
+.review-bar {
+  position: sticky; bottom: 0; z-index: 30; margin-top: 16px;
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  padding: 14px 18px; box-shadow: var(--shadow-lg);
+}
+.review-bar .rb-big { font-size: 22px; font-weight: 750; }
+.review-bar .rb-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+
+/* ---------- Misc ---------- */
+.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.field .hint { font-size: 12px; color: var(--text-faint); margin-top: 4px; }
+.field input, .field select, .field textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); color: var(--text); }
+.switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+.switch:last-child { border-bottom: none; }
+.switch .sw-label { font-size: 14px; font-weight: 550; }
+.switch .sw-sub { font-size: 12px; color: var(--text-faint); }
+.toggle { width: 44px; height: 26px; border-radius: 999px; background: var(--border-strong); position: relative; border: none; transition: background .2s; flex-shrink: 0; }
+.toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: left .2s; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+.toggle.on { background: var(--accent); }
+.toggle.on::after { left: 21px; }
+.section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin: 22px 0 12px; }
+.empty { text-align: center; padding: 50px 20px; color: var(--text-muted); }
+.empty .em-ico { font-size: 48px; opacity: .6; }
+.empty h3 { margin: 12px 0 4px; color: var(--text); }
+.kpi-list { display: flex; gap: 20px; flex-wrap: wrap; }
+.codebox { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; font-family: ui-monospace, Menlo, monospace; font-size: 13px; white-space: pre-wrap; word-break: break-word; }
+.helper { font-size: 12.5px; color: var(--text-faint); }
+
+/* ---------- Modal ---------- */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; place-items: center; z-index: 100; padding: 20px; }
+.modal-overlay.open { display: grid; }
+.modal { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow-lg); width: 100%; max-width: 460px; padding: 22px; border: 1px solid var(--border); }
+.modal h3 { margin-bottom: 4px; }
+.modal .modal-sub { color: var(--text-muted); font-size: 13.5px; margin-bottom: 16px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+
+/* ---------- Toasts ---------- */
+.toasts { position: fixed; bottom: 22px; right: 22px; z-index: 200; display: flex; flex-direction: column; gap: 10px; }
+.toast {
+  background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--accent);
+  border-radius: 10px; padding: 12px 16px; box-shadow: var(--shadow-lg); min-width: 240px; max-width: 360px;
+  font-size: 13.5px; animation: slidein .25s ease;
+}
+.toast.ok { border-left-color: var(--ok); }
+.toast.warn { border-left-color: var(--warn); }
+.toast.err { border-left-color: var(--danger); }
+.toast strong { display: block; margin-bottom: 1px; }
+@keyframes slidein { from { transform: translateX(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 880px) {
+  .shell { flex-direction: column; }
+  .sidebar { width: 100%; height: auto; position: static; display: flex; gap: 6px; overflow-x: auto; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .nav-item { width: auto; white-space: nowrap; margin-bottom: 0; }
+  .nav-item .badge-count { margin-left: 8px; }
+  .row-2 { grid-template-columns: 1fr; }
+  .content { padding: 16px 14px 80px; }
+  .merchant-desc { max-width: 160px; }
+}
+@media print {
+  .topbar, .sidebar, .nav-item, .review-bar, .toasts, .no-print { display: none !important; }
+  .content { padding: 0; }
+  .card { box-shadow: none; }
+}
+
+/* ---------- Cloud Sync ---------- */
+.sync-badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 650; }
+.sync-local-only { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+.sync-connected  { background: var(--ok-soft);     color: var(--ok); }
+.sync-syncing    { background: var(--accent-soft);  color: var(--accent); }
+.sync-error      { background: var(--danger-soft);  color: var(--danger); }
+.sync-row        { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.sync-msg        { font-size: 12px; color: var(--text-muted); }
+.sync-token-row  { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+.sync-token-row label { font-size: 13px; font-weight: 600; min-width: 90px; }
+.sync-actions    { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.sync-last       { font-size: 12px; color: var(--text-faint); font-style: italic; }
+</style>
 </head>
 <body>
 
-  <!-- ============================================================
-       PLACEHOLDER BANNER — remove when real app HTML is merged in
-       ============================================================ -->
-  <div class="placeholder-banner" id="placeholder-banner">
-    <strong>⚠ PLACEHOLDER</strong>
-    Drop your Finance Splitter index.html content here, then integrate the Cloud Sync
-    section and &lt;script&gt; block at the bottom. See integration instructions below.
-    <button onclick="document.getElementById('placeholder-banner').style.display='none'">Dismiss</button>
+<!-- ======================= TOP NAVIGATION ======================= -->
+<header class="topbar">
+  <div class="brand"><span class="logo">₿</span> Finance Splitter</div>
+  <span class="spacer"></span>
+  <div class="theme-dots" id="themeDots" title="Theme color">
+    <span class="theme-dot dot-forest" data-theme="forest"></span>
+    <span class="theme-dot dot-blue"   data-theme="blue"></span>
+    <span class="theme-dot dot-purple" data-theme="purple"></span>
+    <span class="theme-dot dot-rose"   data-theme="rose"></span>
+    <span class="theme-dot dot-slate"  data-theme="slate"></span>
+    <span class="theme-dot dot-amber"  data-theme="amber"></span>
   </div>
+  <button class="icon-btn" id="modeToggle" title="Toggle dark mode">🌙</button>
+</header>
 
-  <!-- ============================================================
-       PLACEHOLDER CONTENT — remove when real app HTML is merged in
-       ============================================================ -->
-  <div class="placeholder-content" id="placeholder-content">
-    <h1>Finance Splitter</h1>
-    <p>Cloud sync infrastructure is ready. Merge your app HTML to replace this placeholder.</p>
+<div class="shell">
+  <!-- ======================= SIDEBAR NAV ======================= -->
+  <nav class="sidebar" id="sidebar">
+    <button class="nav-item active" data-view="dashboard"><span class="ni-ico">📊</span> Dashboard</button>
+    <button class="nav-item" data-view="upload"><span class="ni-ico">⬆️</span> Upload Statement</button>
+    <button class="nav-item" data-view="review"><span class="ni-ico">✅</span> Review <span class="badge-count" id="navReviewCount" style="display:none">0</span></button>
+    <button class="nav-item" data-view="past"><span class="ni-ico">🗂️</span> Past Statements</button>
+    <button class="nav-item" data-view="rules"><span class="ni-ico">⚙️</span> Rules</button>
+    <button class="nav-item" data-view="settings"><span class="ni-ico">🛠️</span> Settings</button>
+  </nav>
 
-    <div class="placeholder-code">Integration steps:
-1. Copy the full contents of your index.html into this file,
-   replacing the placeholder-banner and placeholder-content divs.
+  <main class="content">
 
-2. In your Settings view, add this HTML block:
-   &lt;!-- BEGIN: Cloud Sync Settings (copy from cloud-sync-settings div below) --&gt;
-
-3. Keep the &lt;script&gt; block at the bottom of &lt;body&gt; exactly as-is.
-
-4. After any state-changing action in your app, call:
-   window.fsSyncTrigger()
-
-5. Confirm localStorage key names match STATE_KEYS in the script,
-   or update STATE_KEYS to auto-collect everything (see comment in script).</div>
-
-    <p>While this placeholder is active, you can still test cloud sync below:</p>
-  </div>
-
-  <!-- ============================================================
-       CLOUD SYNC SETTINGS SECTION
-       Integrate this into your existing Settings view.
-       The element IDs must match exactly for the script to wire up.
-       ============================================================ -->
-  <div class="placeholder-content">
-    <div class="cloud-sync-section" id="cloud-sync-settings">
-      <h2>Cloud Sync</h2>
-      <p class="sync-description">
-        Your Amex CSV is parsed in your browser. Finance Splitter only syncs normalized app
-        data like transactions, rules, settings, and past statements. It does not upload or
-        store the original CSV file.
-      </p>
-
-      <div class="sync-status-row">
-        <span id="fs-sync-badge" class="fs-sync-badge fs-sync-local-only">Local only</span>
-        <span id="fs-sync-message" class="fs-sync-message"></span>
+    <!-- ================= VIEW 1: DASHBOARD ================= -->
+    <section class="view active" id="view-dashboard">
+      <div class="view-head">
+        <h2>Dashboard</h2>
+        <p id="dashPeriodText">Your current review period at a glance.</p>
       </div>
 
-      <div class="sync-token-row">
-        <label for="fs-sync-token-input">Sync Token</label>
-        <input
-          type="password"
-          id="fs-sync-token-input"
-          placeholder="Paste your SHARED_SECRET sync token"
-          autocomplete="off"
-          spellcheck="false"
-        />
-        <button id="fs-sync-save-btn" class="btn btn-primary">Save Token</button>
+      <div class="toolbar">
+        <label class="helper">Statement period:</label>
+        <input class="input" id="periodStart" type="date" />
+        <span class="helper">to</span>
+        <input class="input" id="periodEnd" type="date" />
+        <input class="input" id="stmtName" placeholder="Statement name (e.g. June 2026)" style="min-width:200px" />
       </div>
 
-      <div class="sync-actions">
-        <button id="fs-sync-test-btn"  class="btn btn-secondary">Test Connection</button>
-        <button id="fs-sync-pull-btn"  class="btn btn-secondary">Pull from Cloud</button>
-        <button id="fs-sync-push-btn"  class="btn btn-secondary">Push to Cloud</button>
-        <button id="fs-sync-clear-btn" class="btn btn-danger">Clear Sync Token</button>
+      <div class="grid stat-grid" id="dashStats"><!-- stat cards injected --></div>
+
+      <div class="card" style="margin-bottom:18px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <strong>Review progress</strong>
+          <span class="helper" id="progressText">0 of 0 reviewed</span>
+        </div>
+        <div class="progress"><div id="progressBar" style="width:0%"></div></div>
+        <div class="btn-row" style="margin-top:16px">
+          <button class="btn primary big" data-view="upload">⬆️ Upload statement</button>
+          <button class="btn big" data-view="review">✅ Review transactions</button>
+          <button class="btn big" id="btnLoadDemo">✨ Load demo data</button>
+        </div>
       </div>
 
-      <p id="fs-last-synced" class="sync-last-synced">Not yet synced</p>
+      <div class="row-2">
+        <div class="card">
+          <h3 style="margin-bottom:8px">Venmo message</h3>
+          <p class="helper" style="margin-bottom:10px">Copy &amp; paste to request payment from <span class="p2name">Hannah</span>.</p>
+          <div class="codebox" id="venmoMsg">—</div>
+          <div class="btn-row" style="margin-top:12px">
+            <button class="btn primary" id="btnCopyVenmo">📋 Copy message</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:8px">Finish up</h3>
+          <p class="helper" style="margin-bottom:10px">When you're done reviewing this period.</p>
+          <div class="btn-row">
+            <button class="btn primary" id="btnMarkProcessed">🔒 Mark statement as processed</button>
+            <button class="btn" id="btnExportCsv">📄 Export CSV summary</button>
+            <button class="btn" id="btnExportReport">🖨️ Printable report</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= VIEW 2: UPLOAD ================= -->
+    <section class="view" id="view-upload">
+      <div class="view-head">
+        <h2>Upload Statement</h2>
+        <p>Drop your American Express CSV export here. Nothing is added until you confirm.</p>
+      </div>
+
+      <div class="dropzone" id="dropzone">
+        <div class="dz-ico">📥</div>
+        <h3>Drag &amp; drop your Amex CSV</h3>
+        <p>or click to browse &middot; <span class="helper">.csv files only</span></p>
+        <input type="file" id="fileInput" accept=".csv,text/csv" hidden />
+      </div>
+      <div class="btn-row" style="margin-top:12px">
+        <button class="btn" id="btnDemoUpload">✨ Use demo data instead</button>
+      </div>
+
+      <div id="uploadResult" style="margin-top:20px"></div>
+    </section>
+
+    <!-- ================= VIEW 3: REVIEW ================= -->
+    <section class="view" id="view-review">
+      <div class="view-head">
+        <h2>Review Transactions</h2>
+        <p>Tap a percentage to set how much <span class="p2name">Hannah</span> owes. Highlighted rows still need review.</p>
+      </div>
+
+      <div class="toolbar">
+        <input class="input search" id="reviewSearch" placeholder="🔍 Search merchant, description, or category" />
+        <select class="input" id="reviewSort">
+          <option value="date">Sort: Date</option>
+          <option value="amount">Sort: Amount</option>
+          <option value="merchant">Sort: Merchant</option>
+          <option value="status">Sort: Review status</option>
+          <option value="owes">Sort: Hannah owes</option>
+        </select>
+      </div>
+      <div class="chips" id="reviewFilters" style="margin-bottom:14px"></div>
+
+      <div class="card no-print" id="bulkBar" style="display:none;margin-bottom:14px;padding:12px 16px">
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+          <strong id="bulkCount">0 selected</strong>
+          <span class="spacer" style="flex:1"></span>
+          <button class="btn sm" data-bulk="50">50/50</button>
+          <button class="btn sm" data-bulk="0">Luke Only</button>
+          <button class="btn sm" data-bulk="100">Hannah Only</button>
+          <button class="btn sm" data-bulk="exclude">Exclude</button>
+          <button class="btn sm" data-bulk="review">Needs Review</button>
+          <button class="btn sm ghost" data-bulk="clear">Clear</button>
+        </div>
+      </div>
+
+      <div id="reviewTableWrap"></div>
+
+      <div class="review-bar" id="reviewBar">
+        <div>
+          <div class="rb-label"><span class="p2name">Hannah</span> owes</div>
+          <div class="rb-big" id="rbOwes">$0.00</div>
+        </div>
+        <div>
+          <div class="rb-label">Reviewed</div>
+          <div class="rb-big num" id="rbProgress">0 / 0</div>
+        </div>
+        <div style="flex:1;min-width:160px">
+          <div class="progress"><div id="rbBar" style="width:0%"></div></div>
+        </div>
+        <button class="btn primary" id="btnApplyRules">⚡ Apply rules</button>
+      </div>
+    </section>
+
+    <!-- ================= VIEW 4: PAST STATEMENTS ================= -->
+    <section class="view" id="view-past">
+      <div class="view-head">
+        <h2>Past Statements</h2>
+        <p>Processed periods. Their transactions are auto-excluded from future uploads.</p>
+      </div>
+      <div id="pastList"></div>
+    </section>
+
+    <!-- ================= VIEW 5: RULES ================= -->
+    <section class="view" id="view-rules">
+      <div class="view-head">
+        <h2>Rules</h2>
+        <p>Auto-classify transactions on import. Lower priority numbers run first.</p>
+      </div>
+      <div class="btn-row" style="margin-bottom:16px">
+        <button class="btn primary" id="btnAddRule">＋ Add rule</button>
+        <button class="btn" id="btnApplyRulesPage">⚡ Apply to current transactions</button>
+        <button class="btn ghost" id="btnResetRules">↺ Reset to defaults</button>
+      </div>
+      <div id="rulesList"></div>
+    </section>
+
+    <!-- ================= VIEW 6: SETTINGS ================= -->
+    <section class="view" id="view-settings">
+      <div class="view-head">
+        <h2>Settings</h2>
+        <p>Customize names, defaults, appearance and manage your local data.</p>
+      </div>
+
+      <div class="row-2">
+        <div class="card">
+          <div class="section-title" style="margin-top:0">People &amp; splits</div>
+          <div class="field"><label>Your name</label><input id="setLuke" /></div>
+          <div class="field"><label>Partner's name</label><input id="setPartner" /></div>
+          <div class="field"><label>Default partner percentage</label><input id="setDefaultPct" type="number" min="0" max="100" /><div class="hint">Used for the "Custom" default and unknown transactions.</div></div>
+          <div class="field"><label>Default split for unknown transactions</label>
+            <select id="setDefaultSplit">
+              <option value="needs-review">Needs Review</option>
+              <option value="shared">Shared 50/50</option>
+              <option value="luke">Luke Only</option>
+              <option value="hannah">Hannah Only</option>
+              <option value="exclude">Exclude</option>
+            </select>
+          </div>
+          <div class="field"><label>Currency symbol</label><input id="setCurrency" maxlength="3" style="max-width:120px" /></div>
+        </div>
+
+        <div class="card">
+          <div class="section-title" style="margin-top:0">Behavior</div>
+          <div class="switch"><div><div class="sw-label">Auto-exclude credits</div></div><button class="toggle" data-setting="autoExcludeCredits"></button></div>
+          <div class="switch"><div><div class="sw-label">Auto-exclude payments</div></div><button class="toggle" data-setting="autoExcludePayments"></button></div>
+          <div class="switch"><div><div class="sw-label">Auto-exclude refunds</div></div><button class="toggle" data-setting="autoExcludeRefunds"></button></div>
+          <div class="switch"><div><div class="sw-label">Auto-mark rule matches as reviewed</div></div><button class="toggle" data-setting="autoMarkRuleReviewed"></button></div>
+          <div class="switch"><div><div class="sw-label">Show already-processed in review</div></div><button class="toggle" data-setting="showProcessed"></button></div>
+          <div class="switch"><div><div class="sw-label">Confirm before marking processed</div></div><button class="toggle" data-setting="confirmProcessed"></button></div>
+          <div class="switch"><div><div class="sw-label">Compact table mode</div></div><button class="toggle" data-setting="compact"></button></div>
+          <div class="switch"><div><div class="sw-label">Show notes column</div></div><button class="toggle" data-setting="showNotes"></button></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="section-title" style="margin-top:0">Appearance</div>
+        <div class="row-2">
+          <div class="field"><label>Theme color</label>
+            <select id="setTheme">
+              <option value="forest">Forest Green</option>
+              <option value="blue">Blue</option>
+              <option value="purple">Purple</option>
+              <option value="rose">Rose</option>
+              <option value="slate">Slate</option>
+              <option value="amber">Amber</option>
+            </select>
+          </div>
+          <div class="switch" style="align-self:end;border:none"><div class="sw-label">Dark mode</div><button class="toggle" data-setting="dark"></button></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="section-title" style="margin-top:0">Local data</div>
+        <p class="helper" style="margin-bottom:12px">All data lives in your browser's localStorage. Nothing is uploaded anywhere.</p>
+        <div class="btn-row">
+          <button class="btn" id="btnExportJson">⬇️ Export all data (JSON)</button>
+          <button class="btn" id="btnImportJson">⬆️ Import data (JSON)</button>
+          <button class="btn" id="btnClearCurrent">🧹 Clear current statement</button>
+          <button class="btn danger" id="btnDeleteAll">🗑️ Delete all local data</button>
+          <input type="file" id="importJsonInput" accept=".json,application/json" hidden />
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="section-title" style="margin-top:0">Cloud Sync</div>
+        <p class="helper" style="margin-bottom:14px">Your Amex CSV is parsed in your browser. Finance Splitter only syncs normalized app data (transactions, rules, settings, past statements). It does not upload or store the original CSV file.</p>
+        <div class="sync-row">
+          <span id="fsSyncBadge" class="sync-badge sync-local-only">Local only</span>
+          <span id="fsSyncMsg" class="sync-msg"></span>
+        </div>
+        <div class="sync-token-row">
+          <label for="fsSyncToken">Sync Token</label>
+          <input type="password" id="fsSyncToken" class="input" style="flex:1;min-width:200px;font-family:ui-monospace,monospace;font-size:12px" placeholder="Paste your SHARED_SECRET from Vercel" autocomplete="off" spellcheck="false" />
+          <button class="btn sm primary" id="fsSyncSaveBtn">Save</button>
+        </div>
+        <div class="sync-actions">
+          <button class="btn sm" id="fsSyncTestBtn">🔌 Test connection</button>
+          <button class="btn sm" id="fsSyncPullBtn">⬇️ Pull from cloud</button>
+          <button class="btn sm" id="fsSyncPushBtn">⬆️ Push to cloud</button>
+          <button class="btn sm danger" id="fsSyncClearBtn">Clear token</button>
+        </div>
+        <p id="fsSyncLast" class="sync-last">Not yet synced</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ======================= MODAL ======================= -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalBox"></div>
+</div>
+
+<!-- ======================= TOASTS ======================= -->
+<div class="toasts" id="toasts"></div>
+
+<script>
+"use strict";
+/* =========================================================================
+   FINANCE SPLITTER — application logic (vanilla JS)
+   Organized into: State -> Persistence -> Parsing -> Classification ->
+   Calculations -> Rendering (per view) -> Events.
+   ========================================================================= */
+
+const LS_KEY = "financeSplitter:v1";
+
+/* ---------- Default settings ---------- */
+function defaultSettings() {
+  return {
+    lukeName: "Luke",
+    partnerName: "Hannah",
+    defaultPct: 50,            // default partner percentage
+    defaultSplit: "needs-review",
+    currency: "$",
+    theme: "forest",
+    dark: false,
+    autoExcludeCredits: true,
+    autoExcludePayments: true,
+    autoExcludeRefunds: true,
+    autoMarkRuleReviewed: true,
+    showProcessed: true,
+    confirmProcessed: true,
+    compact: false,
+    showNotes: true
+  };
+}
+
+/* ---------- Default rules (seeded) ---------- */
+function defaultRules() {
+  const r = (name, merchant, split, pct, priority, notes="") => ({
+    id: uid(), name, merchantContains: merchant, descriptionContains: "", categoryContains: "",
+    splitType: split, hannahPercent: pct, notes, active: true, priority
+  });
+  return [
+    r("Amex Payment", "american express payment", "exclude", 0, 1),
+    r("Payment Received", "payment - thank you", "exclude", 0, 1),
+    r("Mobile Payment", "mobile payment", "exclude", 0, 1),
+    r("Refund", "refund", "exclude", 0, 2),
+    r("Credit", "credit", "exclude", 0, 2),
+    r("Trader Joe's", "trader joe", "shared", 50, 10),
+    r("Costco", "costco", "needs-review", 50, 11),
+    r("Amazon", "amazon", "needs-review", 50, 12),
+    r("Target", "target", "needs-review", 50, 13),
+    r("Walmart", "walmart", "needs-review", 50, 14),
+    r("Apple", "apple", "needs-review", 50, 15),
+    r("Spotify", "spotify", "luke", 0, 16)
+  ];
+}
+
+/* ---------- App state ---------- */
+let state = {
+  settings: defaultSettings(),
+  rules: defaultRules(),
+  transactions: [],          // confirmed working set for current period
+  pastStatements: [],        // processed statement history
+  processedHashes: {},       // hash -> statementId
+  currentStatement: { name: "", periodStart: "", periodEnd: "" }
+};
+let pendingImport = null;     // staged rows awaiting confirmation (not in state)
+let activeFilter = "all";
+let searchTerm = "";
+let sortBy = "date";
+const selectedRows = new Set();
+
+/* =========================================================================
+   UTILITIES
+   ========================================================================= */
+function uid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); }
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+
+function money(n) {
+  const cur = state.settings.currency || "$";
+  const v = Math.abs(n) < 0.005 ? 0 : n;
+  return cur + v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtDate(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso + "T00:00:00");
+  if (isNaN(d)) return iso;
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+/* =========================================================================
+   PERSISTENCE
+   ========================================================================= */
+function saveToLocalStorage() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+  catch (e) { toast("Save failed", "Storage may be full.", "err"); }
+  if (window.fsSyncTrigger) window.fsSyncTrigger();
+}
+function loadFromLocalStorage() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    state.settings = Object.assign(defaultSettings(), parsed.settings || {});
+    state.rules = Array.isArray(parsed.rules) ? parsed.rules : defaultRules();
+    state.transactions = Array.isArray(parsed.transactions) ? parsed.transactions : [];
+    state.pastStatements = Array.isArray(parsed.pastStatements) ? parsed.pastStatements : [];
+    state.processedHashes = parsed.processedHashes || {};
+    state.currentStatement = parsed.currentStatement || { name: "", periodStart: "", periodEnd: "" };
+  } catch (e) { console.warn("Load failed", e); }
+}
+
+/* =========================================================================
+   CSV PARSING
+   ========================================================================= */
+// Lightweight CSV parser: handles quoted fields, commas/newlines in quotes,
+// and escaped double-quotes (""). Returns array of string arrays.
+function parseCsv(text) {
+  const rows = [];
+  let row = [], field = "", i = 0, inQuotes = false;
+  text = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  while (i < text.length) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+        inQuotes = false; i++; continue;
+      }
+      field += c; i++; continue;
+    }
+    if (c === '"') { inQuotes = true; i++; continue; }
+    if (c === ",") { row.push(field); field = ""; i++; continue; }
+    if (c === "\n") { row.push(field); rows.push(row); row = []; field = ""; i++; continue; }
+    field += c; i++;
+  }
+  // last field/row
+  row.push(field); rows.push(row);
+  // drop fully-blank rows
+  return rows.filter(r => r.some(v => String(v).trim() !== ""));
+}
+
+// Map known Amex headers to our logical columns. Returns indices or -1.
+function detectColumns(headers) {
+  const norm = headers.map(h => String(h).trim().toLowerCase());
+  const find = (...names) => {
+    for (const n of names) { const idx = norm.indexOf(n); if (idx !== -1) return idx; }
+    // partial match fallback
+    for (let i = 0; i < norm.length; i++) for (const n of names) if (norm[i].includes(n)) return i;
+    return -1;
+  };
+  return {
+    date: find("date", "transaction date"),
+    description: find("description", "appears on your statement as"),
+    amount: find("amount"),
+    category: find("category"),
+    reference: find("reference"),
+    cardMember: find("card member", "cardmember"),
+    accountNumber: find("account #", "account number", "account"),
+    extended: find("extended details"),
+    appearsAs: find("appears on your statement as")
+  };
+}
+
+// parseMoney: handle "$1,234.56", "(12.34)" negatives, plain numbers.
+function parseMoney(value) {
+  if (typeof value === "number") return value;
+  let s = String(value || "").trim();
+  if (!s) return 0;
+  let neg = false;
+  if (/^\(.*\)$/.test(s)) { neg = true; s = s.slice(1, -1); }
+  s = s.replace(/[^0-9.\-]/g, "");
+  let n = parseFloat(s);
+  if (isNaN(n)) n = 0;
+  return neg ? -Math.abs(n) : n;
+}
+
+// parseDate: accept MM/DD/YYYY, YYYY-MM-DD, etc. Returns ISO yyyy-mm-dd.
+function parseDate(value) {
+  const s = String(value || "").trim();
+  if (!s) return "";
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return `${m[1]}-${pad(m[2])}-${pad(m[3])}`;
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  if (m) { let y = m[3].length === 2 ? "20" + m[3] : m[3]; return `${y}-${pad(m[1])}-${pad(m[2])}`; }
+  const d = new Date(s);
+  if (!isNaN(d)) return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return s;
+}
+function pad(n) { return String(n).padStart(2, "0"); }
+
+// cleanMerchantName: Amex packs store numbers and city/state into the raw
+// string. Produce a clean, human display name. Callers should pass
+// "Appears On Your Statement As" when available (it's already cleaner),
+// falling back to the Description.
+function cleanMerchantName(raw) {
+  let s = String(raw || "").trim();
+  if (!s) return "Unknown";
+  // Strip common payment-processor prefixes (Apple Pay, Square, PayPal, etc.)
+  s = s.replace(/^(aplpay|tst\s*\*|sq\s*\*|paypal\s*\*|amzn mktp|googl?e?\s*\*)\s*/i, "");
+  // The human name precedes Amex's store/reference numbers — cut at the first
+  // run of 3+ digits (this also removes numbers glued to words, e.g. "00072SALT").
+  const cut = s.search(/\d{3,}/);
+  if (cut >= 2) s = s.slice(0, cut);
+  // Drop anything after a large whitespace gap (Amex packs city/state there).
+  s = s.split(/\s{2,}/)[0];
+  // Tidy punctuation/whitespace and any leftover trailing 2-letter state code.
+  s = s.replace(/[#*]+/g, " ").replace(/\s+/g, " ").trim().replace(/\s+[A-Z]{2}$/, "").trim();
+  if (!s) s = String(raw).trim().split(/\s{2,}/)[0];
+  // Title-case ALL-CAPS names for a cleaner, premium look (leave mixed-case as-is).
+  if (s && !/[a-z]/.test(s)) s = s.toLowerCase().replace(/(^|[\s-])([a-z])/g, (m, a, b) => a + b.toUpperCase());
+  if (s.length > 40) s = s.slice(0, 40).trim() + "…";
+  return s || "Unknown";
+}
+
+// createTransactionHash: stable identity from date+amount+desc+ref+account.
+function createTransactionHash(t) {
+  const key = [t.date, t.amount.toFixed(2), (t.description || "").trim().toLowerCase(),
+               (t.reference || "").trim(), (t.accountNumber || "").trim()].join("|");
+  // djb2 string hash -> hex
+  let h = 5381;
+  for (let i = 0; i < key.length; i++) h = ((h << 5) + h + key.charCodeAt(i)) & 0xffffffff;
+  return "h" + (h >>> 0).toString(16);
+}
+
+// normalizeRow: turn a raw CSV row + column mapping into a transaction object.
+function normalizeRow(row, mapping, fileName) {
+  const get = (idx) => idx >= 0 && idx < row.length ? String(row[idx]).trim() : "";
+  const description = get(mapping.description) || get(mapping.extended) || "Unknown";
+  // Prefer the cleaner "Appears On Your Statement As" field for the display name.
+  const appearsAs = get(mapping.appearsAs);
+  const t = {
+    id: uid(),
+    date: parseDate(get(mapping.date)),
+    description,
+    merchantName: cleanMerchantName(appearsAs || description),
+    amount: parseMoney(get(mapping.amount)),
+    category: get(mapping.category),
+    cardMember: get(mapping.cardMember),
+    accountNumber: get(mapping.accountNumber),
+    reference: get(mapping.reference),
+    rawRow: row,
+    sourceFileName: fileName || "",
+    importedAt: new Date().toISOString(),
+    statementId: null,
+    status: "needs-review",   // needs-review | reviewed | excluded | processed
+    kind: "expense",          // expense | payment | credit | refund
+    hannahPercent: 0,
+    suggestedPercent: null,
+    suggestedType: null,
+    splitType: "needs-review",
+    notes: ""
+  };
+  t.transactionHash = createTransactionHash(t);
+  return t;
+}
+
+/* =========================================================================
+   CLASSIFICATION
+   ========================================================================= */
+const NONEXPENSE_RX = {
+  payment: /(mobile payment|payment\s*-?\s*thank you|autopay|online payment|american express payment|electronic payment)/i,
+  refund: /(refund|return)/i,
+  credit: /(\bcredit\b|cash ?back|statement credit|reward)/i
+};
+
+function applyRuleToTransaction(t, rule) {
+  // returns true if rule matched and was applied
+  const hay = {
+    m: (t.merchantName + " " + t.description).toLowerCase(),
+    d: t.description.toLowerCase(),
+    c: (t.category || "").toLowerCase()
+  };
+  const contains = (field, needle) => needle ? field.includes(needle.toLowerCase()) : true;
+  const hasAny = rule.merchantContains || rule.descriptionContains || rule.categoryContains;
+  if (!hasAny) return false;
+  const match =
+    (!rule.merchantContains || hay.m.includes(rule.merchantContains.toLowerCase())) &&
+    (!rule.descriptionContains || hay.d.includes(rule.descriptionContains.toLowerCase())) &&
+    (!rule.categoryContains || hay.c.includes(rule.categoryContains.toLowerCase()));
+  if (!match) return false;
+  applySplitType(t, rule.splitType, rule.hannahPercent);
+  if (rule.notes && !t.notes) t.notes = rule.notes;
+  if (rule.splitType !== "needs-review" && rule.splitType !== "exclude" && state.settings.autoMarkRuleReviewed) {
+    t.status = "reviewed";
+  }
+  return true;
+}
+
+// Translate a split type into percent + status fields.
+function applySplitType(t, type, customPct) {
+  t.splitType = type;
+  switch (type) {
+    case "shared": t.hannahPercent = 50; break;
+    case "luke": t.hannahPercent = 0; break;
+    case "hannah": t.hannahPercent = 100; break;
+    case "custom": t.hannahPercent = (customPct != null ? customPct : state.settings.defaultPct); break;
+    case "exclude": t.status = "excluded"; t.hannahPercent = 0; break;
+    case "needs-review": t.status = "needs-review"; break;
+  }
+}
+
+// classifyTransaction: full pipeline applied at import time.
+function classifyTransaction(t, rules, settings) {
+  // 1. Already processed in a past statement?
+  if (state.processedHashes[t.transactionHash]) {
+    t.status = "processed"; t.splitType = "processed"; return t;
+  }
+  // 2. Non-expense detection (payments/credits/refunds + negative amounts)
+  let kind = "expense";
+  if (NONEXPENSE_RX.payment.test(t.description)) kind = "payment";
+  else if (NONEXPENSE_RX.refund.test(t.description)) kind = "refund";
+  else if (NONEXPENSE_RX.credit.test(t.description)) kind = "credit";
+  else if (t.amount < 0) kind = "credit"; // negative = money back
+  t.kind = kind;
+  const autoEx = (kind === "payment" && settings.autoExcludePayments) ||
+                 (kind === "credit" && settings.autoExcludeCredits) ||
+                 (kind === "refund" && settings.autoExcludeRefunds);
+  if (kind !== "expense" && autoEx) { t.status = "excluded"; t.splitType = "exclude"; return t; }
+
+  // 3. Custom rules by ascending priority
+  const sorted = [...rules].filter(r => r.active).sort((a, b) => (a.priority || 0) - (b.priority || 0));
+  for (const rule of sorted) { if (applyRuleToTransaction(t, rule)) return t; }
+
+  // 4. Category defaults
+  const cat = (t.category || "").toLowerCase();
+  if (/grocer|supermarket|grocery/.test(cat)) {
+    applySplitType(t, "shared");
+    if (settings.autoMarkRuleReviewed) t.status = "reviewed";
+    return t;
+  }
+
+  // 5. Fallback to configured default (defaults to Needs Review)
+  applySplitType(t, settings.defaultSplit === "needs-review" ? "needs-review" : settings.defaultSplit);
+  return t;
+}
+
+/* =========================================================================
+   CALCULATIONS
+   ========================================================================= */
+// Per-transaction split. Only positive expenses that aren't excluded/processed count.
+function calculateTransactionSplit(t) {
+  const amt = Math.abs(t.amount);
+  const included = t.kind === "expense" && t.status !== "excluded" && t.status !== "processed";
+  if (!included) return { included: false, amount: amt, hannahOwes: 0, lukePays: 0 };
+  const hannahOwes = amt * (t.hannahPercent || 0) / 100;
+  return { included: true, amount: amt, hannahOwes, lukePays: amt - hannahOwes };
+}
+
+function calculateDashboardTotals() {
+  const tx = state.transactions;
+  let hannahOwes = 0, includedTotal = 0, lukePortion = 0;
+  let needReview = 0, reviewed = 0, excluded = 0, processed = 0, nonExpense = 0;
+  for (const t of tx) {
+    if (t.status === "processed") { processed++; continue; }
+    if (t.kind !== "expense") { nonExpense++; continue; }
+    if (t.status === "excluded") { excluded++; continue; }
+    if (t.status === "needs-review") { needReview++; continue; }
+    if (t.status === "reviewed") {
+      reviewed++;
+      const s = calculateTransactionSplit(t);
+      hannahOwes += s.hannahOwes; includedTotal += s.amount; lukePortion += s.lukePays;
+    }
+  }
+  const reviewableTotal = reviewed + needReview;
+  return { hannahOwes, includedTotal, lukePortion, needReview, reviewed, excluded, processed, nonExpense,
+           reviewableTotal, progress: reviewableTotal ? Math.round(reviewed / reviewableTotal * 100) : 0 };
+}
+
+/* =========================================================================
+   THEME
+   ========================================================================= */
+function applyTheme() {
+  document.documentElement.setAttribute("data-theme", state.settings.theme);
+  document.documentElement.setAttribute("data-mode", state.settings.dark ? "dark" : "light");
+  $("#modeToggle").textContent = state.settings.dark ? "☀️" : "🌙";
+  $$("#themeDots .theme-dot").forEach(d => d.classList.toggle("active", d.dataset.theme === state.settings.theme));
+}
+
+/* =========================================================================
+   TOASTS & MODAL
+   ========================================================================= */
+function toast(title, msg, type = "ok", ms = 3200) {
+  const el = document.createElement("div");
+  el.className = "toast " + type;
+  el.innerHTML = `<strong>${esc(title)}</strong>${msg ? `<span>${esc(msg)}</span>` : ""}`;
+  $("#toasts").appendChild(el);
+  setTimeout(() => { el.style.opacity = "0"; el.style.transition = "opacity .3s"; setTimeout(() => el.remove(), 300); }, ms);
+}
+
+// Copy helper that works even on file:// (where navigator.clipboard is often
+// unavailable) by falling back to a hidden textarea + execCommand.
+function copyToClipboard(text, okMsg) {
+  const ok = () => toast("Copied", okMsg || "Copied to clipboard.");
+  const fallback = () => {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      document.execCommand("copy"); ta.remove(); ok();
+    } catch (e) { toast("Couldn't copy", "Select and copy the text manually.", "warn"); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(ok).catch(fallback);
+  } else fallback();
+}
+
+function openModal(html) { $("#modalBox").innerHTML = html; $("#modalOverlay").classList.add("open"); }
+function closeModal() { $("#modalOverlay").classList.remove("open"); }
+$("#modalOverlay").addEventListener("click", e => { if (e.target.id === "modalOverlay") closeModal(); });
+
+/* =========================================================================
+   NAVIGATION
+   ========================================================================= */
+function showView(name) {
+  $$(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + name));
+  $$(".nav-item").forEach(n => n.classList.toggle("active", n.dataset.view === name));
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  if (name === "dashboard") renderDashboard();
+  if (name === "review") renderReview();
+  if (name === "past") renderPast();
+  if (name === "rules") renderRules();
+  if (name === "settings") renderSettings();
+}
+document.addEventListener("click", e => {
+  const nav = e.target.closest("[data-view]");
+  if (nav) showView(nav.dataset.view);
+});
+
+/* =========================================================================
+   RENDER: DASHBOARD
+   ========================================================================= */
+function renderDashboard() {
+  const s = state.settings, t = calculateDashboardTotals();
+  $$(".p2name").forEach(el => el.textContent = s.partnerName);
+
+  const cards = [
+    { label: `${s.partnerName} owes`, value: money(t.hannahOwes), sub: "total to request this period", hero: true },
+    { label: "Included shared expenses", value: money(t.includedTotal), sub: `total of the ${t.reviewed} reviewed charges` },
+    { label: `${s.lukeName}'s portion`, value: money(t.lukePortion), sub: "your share of those charges" },
+    { label: "Needs review", value: t.needReview, sub: "charges still to classify" },
+    { label: "Reviewed", value: t.reviewed, sub: "charges you've split" },
+    { label: "Excluded", value: t.excluded, sub: "charges you skipped" },
+    { label: "Already processed", value: t.processed, sub: "settled in a past statement" },
+    { label: "Credits / refunds / payments", value: t.nonExpense, sub: "auto-excluded (not expenses)" }
+  ];
+  $("#dashStats").innerHTML = cards.map(c => `
+    <div class="card stat-card ${c.hero ? "hero" : ""}">
+      <div class="stat-label">${esc(c.label)}</div>
+      <div class="stat-value num">${esc(c.value)}</div>
+      <div class="stat-sub">${esc(c.sub)}</div>
+    </div>`).join("");
+
+  $("#progressBar").style.width = t.progress + "%";
+  $("#progressText").textContent = `${t.reviewed} of ${t.reviewableTotal} reviewed (${t.progress}%)`;
+  $("#venmoMsg").textContent = venmoMessage();
+
+  // period inputs reflect state
+  $("#periodStart").value = state.currentStatement.periodStart || "";
+  $("#periodEnd").value = state.currentStatement.periodEnd || "";
+  $("#stmtName").value = state.currentStatement.name || "";
+  const range = state.currentStatement.periodStart
+    ? `${fmtDate(state.currentStatement.periodStart)} – ${fmtDate(state.currentStatement.periodEnd)}`
+    : "No active period set";
+  $("#dashPeriodText").textContent = range;
+
+  updateNavBadge();
+}
+
+function venmoMessage() {
+  const s = state.settings, t = calculateDashboardTotals();
+  const start = state.currentStatement.periodStart, end = state.currentStatement.periodEnd;
+  const period = start ? ` from ${fmtDate(start)} to ${fmtDate(end)}` : "";
+  return `${s.partnerName} owes ${s.lukeName} ${money(t.hannahOwes)} for shared Amex expenses${period}.`;
+}
+
+function updateNavBadge() {
+  const t = calculateDashboardTotals();
+  const b = $("#navReviewCount");
+  if (t.needReview > 0) { b.style.display = ""; b.textContent = t.needReview; }
+  else b.style.display = "none";
+}
+
+/* =========================================================================
+   RENDER: REVIEW
+   ========================================================================= */
+const FILTERS = [
+  ["all", "All"], ["needs-review", "Needs Review"], ["reviewed", "Reviewed"],
+  ["shared", "Shared"], ["luke", "Luke Only"], ["hannah", "Hannah Only"],
+  ["custom", "Custom"], ["excluded", "Excluded"], ["processed", "Already Processed"],
+  ["nonexpense", "Credits/Refunds/Payments"]
+];
+
+function rowMatchesFilter(t) {
+  switch (activeFilter) {
+    case "all": return true;
+    case "needs-review": return t.status === "needs-review" && t.kind === "expense";
+    case "reviewed": return t.status === "reviewed";
+    case "shared": return t.splitType === "shared" && t.status !== "excluded";
+    case "luke": return t.hannahPercent === 0 && t.status === "reviewed";
+    case "hannah": return t.hannahPercent === 100 && t.status === "reviewed";
+    case "custom": return t.splitType === "custom";
+    case "excluded": return t.status === "excluded";
+    case "processed": return t.status === "processed";
+    case "nonexpense": return t.kind !== "expense";
+    default: return true;
+  }
+}
+
+function visibleTransactions() {
+  let rows = state.transactions.slice();
+  if (!state.settings.showProcessed) rows = rows.filter(t => t.status !== "processed");
+  rows = rows.filter(rowMatchesFilter);
+  if (searchTerm) {
+    const q = searchTerm.toLowerCase();
+    rows = rows.filter(t => (t.merchantName + " " + t.description + " " + (t.category || "")).toLowerCase().includes(q));
+  }
+  rows.sort((a, b) => {
+    switch (sortBy) {
+      case "amount": return Math.abs(b.amount) - Math.abs(a.amount);
+      case "merchant": return a.merchantName.localeCompare(b.merchantName);
+      case "status": return a.status.localeCompare(b.status);
+      case "owes": return calculateTransactionSplit(b).hannahOwes - calculateTransactionSplit(a).hannahOwes;
+      default: return (b.date || "").localeCompare(a.date || "");
+    }
+  });
+  return rows;
+}
+
+function statusBadge(t) {
+  if (t.status === "processed") return `<span class="badge processed">Already processed</span>`;
+  if (t.kind !== "expense") return `<span class="badge nonexpense">${esc(t.kind)}</span>`;
+  if (t.status === "excluded") return `<span class="badge excluded">Excluded</span>`;
+  if (t.status === "reviewed") {
+    let label = "Reviewed";
+    if (t.hannahPercent === 50) label = "Shared 50/50";
+    else if (t.hannahPercent === 0) label = `${state.settings.lukeName} only`;
+    else if (t.hannahPercent === 100) label = `${state.settings.partnerName} only`;
+    else label = t.hannahPercent + "% " + state.settings.partnerName;
+    return `<span class="badge reviewed">✓ ${esc(label)}</span>`;
+  }
+  return `<span class="badge review">Needs review</span>`;
+}
+
+function renderReview() {
+  // filter chips
+  $("#reviewFilters").innerHTML = FILTERS.map(([k, label]) =>
+    `<button class="chip ${activeFilter === k ? "active" : ""}" data-filter="${k}">${esc(label)}</button>`).join("");
+
+  if (state.transactions.length === 0) {
+    $("#reviewTableWrap").innerHTML = emptyState("🧾", "No transactions yet",
+      "Upload an Amex CSV or load demo data to get started.",
+      `<button class="btn primary" data-view="upload">Upload statement</button>
+       <button class="btn" id="btnEmptyDemo">Load demo data</button>`);
+    $("#reviewBar").style.display = "none";
+    $("#bulkBar").style.display = "none";
+    return;
+  }
+  $("#reviewBar").style.display = "flex";
+
+  const rows = visibleTransactions();
+  const showNotes = state.settings.showNotes;
+  const compact = state.settings.compact ? "compact" : "";
+
+  let html = `<div class="table-wrap"><table class="${compact}"><thead><tr>
+    <th style="width:34px"><input type="checkbox" id="selAll" title="Select all"></th>
+    <th>Date</th><th>Merchant</th><th>Category</th><th class="num">Amount</th>
+    <th>Split</th><th class="num">${esc(state.settings.partnerName)} owes</th>
+    <th>Status</th>${showNotes ? "<th>Notes</th>" : ""}</tr></thead><tbody>`;
+
+  for (const t of rows) {
+    const sp = calculateTransactionSplit(t);
+    const rowClass = t.status === "processed" ? "row-processed"
+      : t.kind !== "expense" ? "row-nonexpense"
+      : t.status === "excluded" ? "row-excluded"
+      : t.status === "needs-review" ? "row-review" : "";
+    const isEx = t.status === "excluded";
+    const on = (p) => t.status === "reviewed" && t.hannahPercent === p ? "on" : "";
+    const splitButtons = `<div class="splitbar" data-id="${t.id}">
+        <button data-pct="0" class="${on(0)}">0%</button>
+        <button data-pct="25" class="${on(25)}">25%</button>
+        <button data-pct="50" class="${on(50)}">50%</button>
+        <button data-pct="75" class="${on(75)}">75%</button>
+        <button data-pct="100" class="${on(100)}">100%</button>
+        <button data-act="custom" title="Custom amount/percent">✎</button>
+        <button data-act="exclude" class="ex ${isEx ? "on" : ""}" title="Exclude">✕</button>
+      </div>`;
+    html += `<tr class="${rowClass}" data-row="${t.id}">
+      <td><input type="checkbox" class="rowSel" data-id="${t.id}" ${selectedRows.has(t.id) ? "checked" : ""}></td>
+      <td class="num">${fmtDate(t.date)}</td>
+      <td><div class="merchant-name">${esc(t.merchantName)}</div><div class="merchant-desc" title="${esc(t.description)}">${esc(t.description)}</div></td>
+      <td><span class="helper">${esc(t.category || "—")}</span></td>
+      <td class="num">${money(Math.abs(t.amount))}</td>
+      <td>${t.status === "processed" ? '<span class="helper">—</span>' : splitButtons}</td>
+      <td class="num"><strong>${sp.included ? money(sp.hannahOwes) : "—"}</strong></td>
+      <td>${statusBadge(t)}</td>
+      ${showNotes ? `<td><input class="input noteInput" data-id="${t.id}" value="${esc(t.notes)}" placeholder="add note…" style="min-width:120px;padding:5px 8px"></td>` : ""}
+    </tr>`;
+  }
+  html += `</tbody></table></div>`;
+  if (rows.length === 0) html = emptyState("🔍", "No matching transactions", "Try a different filter or search.", "");
+  $("#reviewTableWrap").innerHTML = html;
+
+  updateReviewBar();
+  updateBulkBar();
+}
+
+function updateReviewBar() {
+  const t = calculateDashboardTotals();
+  $("#rbOwes").textContent = money(t.hannahOwes);
+  $("#rbProgress").textContent = `${t.reviewed} / ${t.reviewableTotal}`;
+  $("#rbBar").style.width = t.progress + "%";
+}
+
+function updateBulkBar() {
+  const bar = $("#bulkBar");
+  if (selectedRows.size === 0) { bar.style.display = "none"; return; }
+  bar.style.display = "block";
+  $("#bulkCount").textContent = `${selectedRows.size} selected`;
+}
+
+function emptyState(ico, title, sub, actions) {
+  return `<div class="empty card"><div class="em-ico">${ico}</div><h3>${esc(title)}</h3>
+    <p>${esc(sub)}</p><div class="btn-row" style="justify-content:center;margin-top:14px">${actions}</div></div>`;
+}
+
+// Apply a percentage to a transaction (marks reviewed) and refresh UI.
+function setSplit(id, pct) {
+  const t = state.transactions.find(x => x.id === id);
+  if (!t) return;
+  t.hannahPercent = pct;
+  t.status = "reviewed";
+  t.splitType = pct === 50 ? "shared" : pct === 0 ? "luke" : pct === 100 ? "hannah" : "custom";
+  if (t.kind !== "expense") t.kind = "expense"; // user override: treat as expense
+  saveToLocalStorage();
+  renderReview();
+  updateNavBadge();
+}
+function excludeTx(id) {
+  const t = state.transactions.find(x => x.id === id);
+  if (!t) return;
+  t.status = t.status === "excluded" ? "needs-review" : "excluded";
+  t.splitType = t.status === "excluded" ? "exclude" : "needs-review";
+  saveToLocalStorage(); renderReview(); updateNavBadge();
+}
+
+/* =========================================================================
+   RENDER: PAST STATEMENTS
+   ========================================================================= */
+function loadPastStatements() { return state.pastStatements; }
+
+function renderPast() {
+  const list = state.pastStatements;
+  if (list.length === 0) {
+    $("#pastList").innerHTML = emptyState("🗂️", "No processed statements yet",
+      "When you mark a statement as processed it will appear here, and its transactions will be excluded from future uploads.", "");
+    return;
+  }
+  $("#pastList").innerHTML = list.slice().reverse().map(st => `
+    <div class="card" style="margin-bottom:14px">
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:start">
+        <div>
+          <h3>${esc(st.name)}</h3>
+          <div class="helper">${fmtDate(st.periodStart)} – ${fmtDate(st.periodEnd)} &middot; processed ${fmtDate(st.processedDate)}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="stat-value num" style="font-size:22px;color:var(--accent)">${money(st.hannahOwed)}</div>
+          <div class="helper">${esc(state.settings.partnerName)} owed</div>
+        </div>
+      </div>
+      <div class="kpi-list" style="margin:14px 0">
+        <div><div class="helper">Included total</div><strong class="num">${money(st.includedTotal)}</strong></div>
+        <div><div class="helper">Transactions</div><strong class="num">${st.transactions.length}</strong></div>
+        <div><div class="helper">Reviewed</div><strong class="num">${st.reviewedCount}</strong></div>
+        <div><div class="helper">Excluded</div><strong class="num">${st.excludedCount}</strong></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn sm" data-past-view="${st.id}">👁 View details</button>
+        <button class="btn sm" data-past-copy="${st.id}">📋 Copy Venmo</button>
+        <button class="btn sm" data-past-export="${st.id}">📄 Export</button>
+        <button class="btn sm" data-past-reopen="${st.id}">↩ Reopen</button>
+        <button class="btn sm danger" data-past-delete="${st.id}">🗑 Delete</button>
+      </div>
+    </div>`).join("");
+}
+
+function viewStatementDetails(id) {
+  const st = state.pastStatements.find(s => s.id === id);
+  if (!st) return;
+  const included = st.transactions.filter(t => t.kind === "expense" && t.status === "reviewed");
+  const excluded = st.transactions.filter(t => !(t.kind === "expense" && t.status === "reviewed"));
+  const rowHtml = (arr) => arr.length ? arr.map(t => `<tr>
+      <td class="num">${fmtDate(t.date)}</td><td>${esc(t.merchantName)}</td>
+      <td class="num">${money(Math.abs(t.amount))}</td>
+      <td class="num">${t.kind === "expense" && t.status === "reviewed" ? money(Math.abs(t.amount) * t.hannahPercent / 100) : "—"}</td>
+    </tr>`).join("") : `<tr><td colspan="4" class="helper">None</td></tr>`;
+  openModal(`<h3>${esc(st.name)}</h3>
+    <div class="modal-sub">${fmtDate(st.periodStart)} – ${fmtDate(st.periodEnd)}</div>
+    <div class="section-title" style="margin-top:0">Included (${included.length})</div>
+    <div class="table-wrap"><table><thead><tr><th>Date</th><th>Merchant</th><th class="num">Amount</th><th class="num">${esc(state.settings.partnerName)} owes</th></tr></thead><tbody>${rowHtml(included)}</tbody></table></div>
+    <div class="section-title">Excluded / processed (${excluded.length})</div>
+    <div class="table-wrap"><table><thead><tr><th>Date</th><th>Merchant</th><th class="num">Amount</th><th></th></tr></thead><tbody>${rowHtml(excluded)}</tbody></table></div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Close</button></div>`);
+}
+
+/* =========================================================================
+   RENDER: RULES
+   ========================================================================= */
+const SPLIT_OPTIONS = [["shared","Shared 50/50"],["luke","Luke Only"],["hannah","Hannah Only"],["custom","Custom"],["exclude","Exclude"],["needs-review","Needs Review"]];
+
+function renderRules() {
+  const rules = state.rules.slice().sort((a, b) => (a.priority || 0) - (b.priority || 0));
+  if (rules.length === 0) { $("#rulesList").innerHTML = emptyState("⚙️", "No rules", "Add a rule to auto-classify transactions.", ""); return; }
+  $("#rulesList").innerHTML = `<div class="table-wrap"><table><thead><tr>
+    <th>Priority</th><th>Name</th><th>Matches</th><th>Split</th><th>Active</th><th></th></tr></thead><tbody>` +
+    rules.map(r => `<tr>
+      <td class="num">${r.priority}</td>
+      <td><strong>${esc(r.name)}</strong>${r.notes ? `<div class="helper">${esc(r.notes)}</div>` : ""}</td>
+      <td class="helper">${[r.merchantContains && "merchant: " + esc(r.merchantContains), r.descriptionContains && "desc: " + esc(r.descriptionContains), r.categoryContains && "cat: " + esc(r.categoryContains)].filter(Boolean).join("<br>") || "—"}</td>
+      <td><span class="badge ${r.splitType === "exclude" ? "excluded" : "shared"}">${esc(splitLabel(r.splitType, r.hannahPercent))}</span></td>
+      <td><button class="toggle ${r.active ? "on" : ""}" data-rule-toggle="${r.id}"></button></td>
+      <td><button class="btn sm" data-rule-edit="${r.id}">Edit</button> <button class="btn sm danger" data-rule-del="${r.id}">Del</button></td>
+    </tr>`).join("") + `</tbody></table></div>`;
+}
+function splitLabel(type, pct) {
+  const m = { shared: "Shared 50/50", luke: "Luke Only", hannah: "Hannah Only", exclude: "Exclude", "needs-review": "Needs Review" };
+  return type === "custom" ? `Custom ${pct}%` : (m[type] || type);
+}
+
+function editRule(id) {
+  const r = id ? state.rules.find(x => x.id === id) : { id: "", name: "", merchantContains: "", descriptionContains: "", categoryContains: "", splitType: "shared", hannahPercent: 50, notes: "", active: true, priority: 50 };
+  openModal(`<h3>${id ? "Edit" : "Add"} rule</h3><div class="modal-sub">Rules apply on import, lowest priority first.</div>
+    <div class="field"><label>Rule name</label><input id="rfName" value="${esc(r.name)}"></div>
+    <div class="row-2">
+      <div class="field"><label>Merchant contains</label><input id="rfMerchant" value="${esc(r.merchantContains)}"></div>
+      <div class="field"><label>Description contains</label><input id="rfDesc" value="${esc(r.descriptionContains)}"></div>
     </div>
-  </div>
+    <div class="row-2">
+      <div class="field"><label>Category contains</label><input id="rfCat" value="${esc(r.categoryContains)}"></div>
+      <div class="field"><label>Priority</label><input id="rfPrio" type="number" value="${r.priority}"></div>
+    </div>
+    <div class="row-2">
+      <div class="field"><label>Split type</label><select id="rfSplit">${SPLIT_OPTIONS.map(([v, l]) => `<option value="${v}" ${r.splitType === v ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+      <div class="field"><label>Partner % (for custom)</label><input id="rfPct" type="number" min="0" max="100" value="${r.hannahPercent}"></div>
+    </div>
+    <div class="field"><label>Notes</label><input id="rfNotes" value="${esc(r.notes)}"></div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" id="rfSave">Save rule</button></div>`);
+  $("#rfSave").addEventListener("click", () => {
+    const obj = {
+      id: r.id || uid(), name: $("#rfName").value.trim() || "Untitled rule",
+      merchantContains: $("#rfMerchant").value.trim(), descriptionContains: $("#rfDesc").value.trim(),
+      categoryContains: $("#rfCat").value.trim(), splitType: $("#rfSplit").value,
+      hannahPercent: clamp(parseInt($("#rfPct").value) || 0, 0, 100), notes: $("#rfNotes").value.trim(),
+      active: r.active !== false, priority: parseInt($("#rfPrio").value) || 50
+    };
+    if (id) { const i = state.rules.findIndex(x => x.id === id); state.rules[i] = obj; }
+    else state.rules.push(obj);
+    saveToLocalStorage(); closeModal(); renderRules(); toast("Rule saved", obj.name);
+  });
+}
+function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
 
-  <!-- ============================================================
-       CLOUD SYNC SCRIPT — keep at bottom of <body> in real app
-       ============================================================ -->
-  <script>
-    (function FinanceSplitterSync() {
-      'use strict';
+/* =========================================================================
+   RENDER: SETTINGS
+   ========================================================================= */
+function renderSettings() {
+  const s = state.settings;
+  $("#setLuke").value = s.lukeName;
+  $("#setPartner").value = s.partnerName;
+  $("#setDefaultPct").value = s.defaultPct;
+  $("#setDefaultSplit").value = s.defaultSplit;
+  $("#setCurrency").value = s.currency;
+  $("#setTheme").value = s.theme;
+  $$("[data-setting]").forEach(btn => { if (btn.classList.contains("toggle")) btn.classList.toggle("on", !!s[btn.dataset.setting]); });
+}
 
-      // ── Constants ─────────────────────────────────────────────
-      const APP_NAME       = 'Finance Splitter';
-      const SCHEMA_VERSION = 1;
-      const SYNC_TOKEN_KEY = 'fs_sync_token';
-      const DEVICE_ID_KEY  = 'fs_device_id';
-      const LAST_SYNCED_KEY = 'fs_last_synced';
-      const DEBOUNCE_MS    = 2500;
+/* =========================================================================
+   IMPORT FLOW
+   ========================================================================= */
+function handleCsvText(text, fileName) {
+  const rows = parseCsv(text);
+  if (rows.length < 2) { toast("Empty file", "No data rows found.", "err"); return; }
+  const headers = rows[0];
+  const mapping = detectColumns(headers);
+  if (mapping.date === -1 || mapping.amount === -1 || mapping.description === -1) {
+    // Show manual column mapping UI
+    showColumnMapping(headers, rows, fileName, mapping);
+    return;
+  }
+  buildPendingImport(rows.slice(1), mapping, fileName);
+}
 
-      // ── State keys to sync ────────────────────────────────────
-      // OPTION A (explicit): list the exact localStorage keys your app uses.
-      // Update these to match the real app once you know the key names.
-      //
-      // OPTION B (auto-collect): set EXPLICIT_KEYS = null and the module
-      // will collect ALL localStorage entries except its own sync keys.
-      // This is safe for a personal app and requires no key-name knowledge.
-      //
-      // Currently using OPTION B so the module works before key names are known.
-      const EXPLICIT_KEYS = null; // set to an array of strings to use OPTION A
+function showColumnMapping(headers, rows, fileName, mapping) {
+  const opts = (sel) => headers.map((h, i) => `<option value="${i}" ${sel === i ? "selected" : ""}>${esc(h || "Column " + (i + 1))}</option>`).join("");
+  openModal(`<h3>Map your columns</h3><div class="modal-sub">We couldn't auto-detect all required columns. Match them below.</div>
+    <div class="field"><label>Date column *</label><select id="mapDate"><option value="-1">— none —</option>${opts(mapping.date)}</select></div>
+    <div class="field"><label>Description column *</label><select id="mapDesc"><option value="-1">— none —</option>${opts(mapping.description)}</select></div>
+    <div class="field"><label>Amount column *</label><select id="mapAmt"><option value="-1">— none —</option>${opts(mapping.amount)}</select></div>
+    <div class="row-2">
+      <div class="field"><label>Category</label><select id="mapCat"><option value="-1">— none —</option>${opts(mapping.category)}</select></div>
+      <div class="field"><label>Reference</label><select id="mapRef"><option value="-1">— none —</option>${opts(mapping.reference)}</select></div>
+    </div>
+    <div class="field"><label>Card member</label><select id="mapCard"><option value="-1">— none —</option>${opts(mapping.cardMember)}</select></div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" id="mapGo">Continue</button></div>`);
+  $("#mapGo").addEventListener("click", () => {
+    const m = {
+      date: +$("#mapDate").value, description: +$("#mapDesc").value, amount: +$("#mapAmt").value,
+      category: +$("#mapCat").value, reference: +$("#mapRef").value, cardMember: +$("#mapCard").value,
+      accountNumber: mapping.accountNumber, extended: mapping.extended
+    };
+    if (m.date === -1 || m.amount === -1 || m.description === -1) { toast("Missing columns", "Date, description and amount are required.", "err"); return; }
+    closeModal();
+    buildPendingImport(rows.slice(1), m, fileName);
+  });
+}
 
-      // Sync-module-private keys excluded from state collection
-      const PRIVATE_KEYS = new Set([SYNC_TOKEN_KEY, DEVICE_ID_KEY, LAST_SYNCED_KEY]);
+function buildPendingImport(dataRows, mapping, fileName) {
+  const txns = dataRows.map(r => normalizeRow(r, mapping, fileName)).filter(t => t.date && !isNaN(t.amount));
+  // detect duplicates within file and against current working set + processed
+  const seen = new Set();
+  const currentHashes = new Set(state.transactions.map(t => t.transactionHash));
+  let dupInFile = 0, alreadyCurrent = 0, alreadyProcessed = 0, nonExpense = 0;
+  const kept = [];
+  for (const t of txns) {
+    classifyTransaction(t, state.rules, state.settings);
+    if (t.status === "processed") alreadyProcessed++;
+    if (t.kind !== "expense") nonExpense++;
+    if (seen.has(t.transactionHash)) { dupInFile++; continue; }
+    seen.add(t.transactionHash);
+    if (currentHashes.has(t.transactionHash)) { alreadyCurrent++; continue; }
+    kept.push(t);
+  }
+  const dates = kept.map(t => t.date).filter(Boolean).sort();
+  const total = kept.reduce((a, t) => a + (t.kind === "expense" ? Math.abs(t.amount) : 0), 0);
+  pendingImport = { txns: kept, fileName, dupInFile, alreadyCurrent, alreadyProcessed, nonExpense,
+                    rowCount: txns.length, dateStart: dates[0] || "", dateEnd: dates[dates.length - 1] || "", total };
+  renderUploadResult();
+}
 
-      let debounceTimer = null;
-      let currentStatus = 'local-only';
+function renderUploadResult() {
+  const p = pendingImport;
+  if (!p) { $("#uploadResult").innerHTML = ""; return; }
+  const preview = p.txns.slice(0, 15);
+  $("#uploadResult").innerHTML = `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <div><h3>📄 ${esc(p.fileName || "Imported file")}</h3>
+        <div class="helper">${p.rowCount} rows parsed</div></div>
+        <span class="badge shared">${p.txns.length} ready to import</span>
+      </div>
+      <div class="grid stat-grid" style="margin-top:16px">
+        ${stat("New transactions", p.txns.length)}
+        ${stat("Date range", p.dateStart ? fmtDate(p.dateStart) + " – " + fmtDate(p.dateEnd) : "—")}
+        ${stat("Total imported", money(p.total))}
+        ${stat("Duplicates in file", p.dupInFile)}
+        ${stat("Already in current set", p.alreadyCurrent)}
+        ${stat("Already processed", p.alreadyProcessed)}
+        ${stat("Credits/refunds/payments", p.nonExpense)}
+      </div>
+      <div class="section-title">Preview (first ${preview.length})</div>
+      <div class="table-wrap"><table><thead><tr><th>Date</th><th>Merchant</th><th class="num">Amount</th><th>Category</th><th>Auto-class</th></tr></thead><tbody>
+        ${preview.map(t => `<tr><td class="num">${fmtDate(t.date)}</td><td>${esc(t.merchantName)}</td><td class="num">${money(Math.abs(t.amount))}</td><td class="helper">${esc(t.category || "—")}</td><td>${statusBadge(t)}</td></tr>`).join("")}
+      </tbody></table></div>
+      <div class="btn-row" style="margin-top:16px">
+        <button class="btn primary big" id="btnConfirmImport">✓ Confirm import (${p.txns.length})</button>
+        <button class="btn big" id="btnCancelImport">Cancel</button>
+      </div>
+    </div>`;
+  $("#btnConfirmImport").addEventListener("click", confirmImport);
+  $("#btnCancelImport").addEventListener("click", () => { pendingImport = null; renderUploadResult(); });
+}
+function stat(label, val) { return `<div class="card stat-card"><div class="stat-label">${esc(label)}</div><div class="stat-value num" style="font-size:20px">${esc(val)}</div></div>`; }
 
-      // ── Device ID ─────────────────────────────────────────────
-      function generateDeviceId() {
-        let id = localStorage.getItem(DEVICE_ID_KEY);
-        if (!id) {
-          id = 'dev-' + Math.random().toString(36).slice(2, 10) + '-' + Date.now().toString(36);
-          localStorage.setItem(DEVICE_ID_KEY, id);
-        }
-        return id;
-      }
+function confirmImport() {
+  if (!pendingImport) return;
+  const newTx = pendingImport.txns;
+  state.transactions.push(...newTx);
+  // auto-set period from imported dates if not set
+  const dates = state.transactions.map(t => t.date).filter(Boolean).sort();
+  if (!state.currentStatement.periodStart && dates.length) {
+    state.currentStatement.periodStart = dates[0];
+    state.currentStatement.periodEnd = dates[dates.length - 1];
+  }
+  pendingImport = null;
+  saveToLocalStorage();
+  renderUploadResult();
+  toast("Import complete", `${newTx.length} transactions added.`, "ok");
+  showView("review");
+}
 
-      // ── Token management ──────────────────────────────────────
-      function getSyncToken()   { return localStorage.getItem(SYNC_TOKEN_KEY) || null; }
-      function clearSyncToken() { localStorage.removeItem(SYNC_TOKEN_KEY); }
+/* =========================================================================
+   MARK STATEMENT PROCESSED
+   ========================================================================= */
+function markStatementProcessed() {
+  if (state.transactions.length === 0) { toast("Nothing to process", "Import transactions first.", "warn"); return; }
+  const proceed = () => doMarkProcessed();
+  if (state.settings.confirmProcessed) {
+    const t = calculateDashboardTotals();
+    openModal(`<h3>Mark statement as processed?</h3>
+      <div class="modal-sub">This locks in the current period. Its transactions will be excluded from future uploads.</div>
+      <div class="field"><label>Statement name</label><input id="procName" value="${esc(state.currentStatement.name || suggestName())}"></div>
+      <div class="card stat-card" style="margin-bottom:6px"><div class="stat-label">${esc(state.settings.partnerName)} owes</div><div class="stat-value num">${money(t.hannahOwes)}</div></div>
+      <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" id="procGo">🔒 Process</button></div>`);
+    $("#procGo").addEventListener("click", () => { state.currentStatement.name = $("#procName").value.trim() || suggestName(); closeModal(); proceed(); });
+  } else {
+    if (!state.currentStatement.name) state.currentStatement.name = suggestName();
+    proceed();
+  }
+}
+function suggestName() {
+  const d = state.currentStatement.periodEnd || state.currentStatement.periodStart;
+  if (d) { const dt = new Date(d + "T00:00:00"); return dt.toLocaleString(undefined, { month: "long", year: "numeric" }); }
+  return new Date().toLocaleString(undefined, { month: "long", year: "numeric" });
+}
 
-      function setSyncToken(token) {
-        const t = (token || '').trim();
-        if (!t) return false;
-        localStorage.setItem(SYNC_TOKEN_KEY, t);
-        return true;
-      }
+function doMarkProcessed() {
+  const totals = calculateDashboardTotals();
+  const id = uid();
+  const reviewedCount = state.transactions.filter(t => t.status === "reviewed").length;
+  const excludedCount = state.transactions.filter(t => t.status === "excluded" || t.kind !== "expense").length;
+  const stmt = {
+    id, name: state.currentStatement.name || suggestName(),
+    periodStart: state.currentStatement.periodStart, periodEnd: state.currentStatement.periodEnd,
+    processedDate: new Date().toISOString().slice(0, 10),
+    hannahOwed: totals.hannahOwes, includedTotal: totals.includedTotal,
+    reviewedCount, excludedCount,
+    transactions: JSON.parse(JSON.stringify(state.transactions.map(t => ({ ...t, statementId: id, status: t.status === "processed" ? "processed" : t.status }))))
+  };
+  state.pastStatements.push(stmt);
+  // record every hash as processed
+  for (const t of state.transactions) state.processedHashes[t.transactionHash] = id;
+  // clear working set
+  state.transactions = [];
+  state.currentStatement = { name: "", periodStart: "", periodEnd: "" };
+  saveToLocalStorage();
+  toast("Statement processed", `${stmt.name} saved to history.`, "ok");
+  showView("past");
+}
 
-      // ── State collection ──────────────────────────────────────
-      function getFullAppState() {
-        const payload = {};
+/* =========================================================================
+   EXPORTS
+   ========================================================================= */
+function download(filename, text, type = "text/plain") {
+  const blob = new Blob([text], { type });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function csvCell(v) { const s = String(v ?? ""); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
 
-        if (EXPLICIT_KEYS) {
-          // OPTION A
-          for (const key of EXPLICIT_KEYS) {
-            const raw = localStorage.getItem(key);
-            if (raw !== null) {
-              try { payload[key] = JSON.parse(raw); } catch { payload[key] = raw; }
-            }
-          }
-        } else {
-          // OPTION B — collect everything except private sync keys
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && !PRIVATE_KEYS.has(key)) {
-              const raw = localStorage.getItem(key);
-              if (raw !== null) {
-                try { payload[key] = JSON.parse(raw); } catch { payload[key] = raw; }
-              }
-            }
-          }
-        }
+function exportSummaryCsv() {
+  const t = calculateDashboardTotals();
+  const s = state.settings;
+  let lines = [
+    ["Finance Splitter summary"],
+    ["Statement", state.currentStatement.name || "(current)"],
+    ["Period", state.currentStatement.periodStart, state.currentStatement.periodEnd],
+    [`${s.partnerName} owes`, t.hannahOwes.toFixed(2)],
+    ["Included total", t.includedTotal.toFixed(2)],
+    [`${s.lukeName}'s portion`, t.lukePortion.toFixed(2)],
+    [], ["Date", "Merchant", "Description", "Category", "Amount", "Partner %", `${s.partnerName} owes`, "Status"]
+  ];
+  for (const tx of state.transactions) {
+    const sp = calculateTransactionSplit(tx);
+    lines.push([tx.date, tx.merchantName, tx.description, tx.category, Math.abs(tx.amount).toFixed(2),
+                tx.hannahPercent, sp.hannahOwes.toFixed(2), tx.status]);
+  }
+  download((state.currentStatement.name || "summary") + ".csv", lines.map(r => r.map(csvCell).join(",")).join("\n"), "text/csv");
+  toast("CSV exported", "Summary downloaded.");
+}
 
-        return {
-          appName:        APP_NAME,
-          schemaVersion:  SCHEMA_VERSION,
-          updatedAt:      new Date().toISOString(),
-          deviceId:       generateDeviceId(),
-          lastSyncSource: 'local',
-          ...payload,
-        };
-      }
+function exportStatementCsv(id) {
+  const st = state.pastStatements.find(s => s.id === id); if (!st) return;
+  let lines = [["Date", "Merchant", "Amount", "Partner %", "Owes", "Status"]];
+  for (const t of st.transactions) lines.push([t.date, t.merchantName, Math.abs(t.amount).toFixed(2), t.hannahPercent,
+    (t.kind === "expense" && t.status === "reviewed" ? Math.abs(t.amount) * t.hannahPercent / 100 : 0).toFixed(2), t.status]);
+  download(st.name + ".csv", lines.map(r => r.map(csvCell).join(",")).join("\n"), "text/csv");
+  toast("Exported", st.name);
+}
 
-      function applyFullAppState(state) {
-        if (!state || typeof state !== 'object') return;
-        const META = new Set(['appName', 'schemaVersion', 'updatedAt', 'deviceId', 'lastSyncSource']);
-        const keys = EXPLICIT_KEYS || Object.keys(state).filter(k => !META.has(k) && !PRIVATE_KEYS.has(k));
+function exportAllDataJson() {
+  download("finance-splitter-backup.json", JSON.stringify(state, null, 2), "application/json");
+  toast("Backup exported", "All data saved as JSON.");
+}
+function importAllDataJson(text) {
+  try {
+    const obj = JSON.parse(text);
+    if (!obj || typeof obj !== "object") throw new Error("bad");
+    state.settings = Object.assign(defaultSettings(), obj.settings || {});
+    state.rules = obj.rules || state.rules;
+    state.transactions = obj.transactions || [];
+    state.pastStatements = obj.pastStatements || [];
+    state.processedHashes = obj.processedHashes || {};
+    state.currentStatement = obj.currentStatement || { name: "", periodStart: "", periodEnd: "" };
+    saveToLocalStorage(); applyTheme(); showView("dashboard");
+    toast("Data imported", "Your backup was restored.", "ok");
+  } catch (e) { toast("Import failed", "That file isn't a valid backup.", "err"); }
+}
 
-        for (const key of keys) {
-          if (key in state) {
-            try {
-              const val = typeof state[key] === 'string' ? state[key] : JSON.stringify(state[key]);
-              localStorage.setItem(key, val);
-            } catch { /* quota exceeded or private */ }
-          }
-        }
-        if (state.updatedAt) localStorage.setItem(LAST_SYNCED_KEY, state.updatedAt);
-      }
+function printableReport() {
+  const t = calculateDashboardTotals(), s = state.settings;
+  const rows = state.transactions.filter(x => x.status === "reviewed" && x.kind === "expense")
+    .map(x => `<tr><td>${fmtDate(x.date)}</td><td>${esc(x.merchantName)}</td><td style="text-align:right">${money(Math.abs(x.amount))}</td><td style="text-align:right">${x.hannahPercent}%</td><td style="text-align:right">${money(Math.abs(x.amount) * x.hannahPercent / 100)}</td></tr>`).join("");
+  const w = window.open("", "_blank");
+  w.document.write(`<html><head><title>${esc(s.partnerName)} — statement</title>
+    <style>body{font-family:-apple-system,Arial,sans-serif;padding:30px;color:#1a2230}h1{margin:0}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{padding:8px;border-bottom:1px solid #ddd;text-align:left}.tot{font-size:28px;font-weight:700;color:#1f7a4d}</style></head>
+    <body><h1>Finance Splitter</h1><p>${esc(s.partnerName)} owes ${esc(s.lukeName)}</p>
+    <div class="tot">${money(t.hannahOwes)}</div>
+    <p>${state.currentStatement.periodStart ? fmtDate(state.currentStatement.periodStart) + " – " + fmtDate(state.currentStatement.periodEnd) : ""}</p>
+    <table><thead><tr><th>Date</th><th>Merchant</th><th style="text-align:right">Amount</th><th style="text-align:right">%</th><th style="text-align:right">${esc(s.partnerName)} owes</th></tr></thead><tbody>${rows}</tbody></table>
+    <p style="margin-top:24px;color:#888">${esc(venmoMessage())}</p>
+    </body></html>`);
+  w.document.close(); w.focus(); setTimeout(() => w.print(), 350);
+}
 
-      // ── Merge logic ───────────────────────────────────────────
-      function mergeCloudStateIntoLocal(cloudState) {
-        if (!cloudState) return;
+/* =========================================================================
+   DEMO DATA
+   ========================================================================= */
+function loadDemoData() {
+  const csv = [
+    "Date,Description,Amount,Extended Details,Appears On Your Statement As,Address,City/State,Zip Code,Country,Reference,Category",
+    "06/14/2026,TRADER JOE'S #182 SALT LAKE CITY UT,84.32,groceries,TRADER JOES,100 S Main,SALT LAKE CITY UT,84101,US,DEMO001,Merchandise & Supplies-Groceries",
+    "06/13/2026,JERSEY MIKES MANASQUAN NJ,28.45,fast food,JERSEY MIKES,2251 Landmark,MANASQUAN NJ,08736,US,DEMO002,Restaurant-Restaurant",
+    "06/12/2026,AMAZON.COM*MK12P SEATTLE WA,53.10,online order,AMAZON,410 Terry Ave,SEATTLE WA,98109,US,DEMO003,Merchandise & Supplies-Internet Purchase",
+    "06/11/2026,MOBILE PAYMENT - THANK YOU,-450.00,payment,MOBILE PAYMENT,,, ,,DEMO004,",
+    "06/10/2026,TARGET 00021 SALT LAKE CITY UT,62.18,retail,TARGET,123 State St,SALT LAKE CITY UT,84111,US,DEMO005,Merchandise & Supplies-Department Stores",
+    "06/09/2026,SPOTIFY USA NEW YORK NY,11.99,subscription,SPOTIFY,4 World Trade,NEW YORK NY,10007,US,DEMO006,Other-Entertainment",
+    "06/08/2026,COSTCO WHSE #0421 SALT LAKE CITY UT,176.54,warehouse,COSTCO,500 N Temple,SALT LAKE CITY UT,84116,US,DEMO007,Merchandise & Supplies-Wholesale Stores",
+    "06/07/2026,UNITED AIRLINES REFUND,-120.00,refund,UNITED REFUND,233 S Wacker,CHICAGO IL,60606,US,DEMO008,Travel-Airline"
+  ].join("\n");
+  // include an "already processed-looking" transaction by pre-seeding a processed hash
+  const seedTx = { date: "2026-05-20", amount: 99.99, description: "OLD GYM MEMBERSHIP SALT LAKE CITY UT", reference: "DEMO000", accountNumber: "" };
+  const seedHash = createTransactionHash(seedTx);
+  if (!Object.values(state.pastStatements).some(s => s.name === "Demo — May 2026")) {
+    // create a tiny past statement so a re-upload of that row shows "already processed"
+    state.processedHashes[seedHash] = "demo-past";
+    if (!state.pastStatements.find(s => s.id === "demo-past")) {
+      state.pastStatements.push({ id: "demo-past", name: "Demo — May 2026", periodStart: "2026-05-01", periodEnd: "2026-05-31",
+        processedDate: "2026-06-01", hannahOwed: 49.99, includedTotal: 99.99, reviewedCount: 1, excludedCount: 0,
+        transactions: [{ ...seedTx, id: uid(), transactionHash: seedHash, merchantName: "Old Gym Membership", category: "Health", kind: "expense", status: "reviewed", hannahPercent: 50, splitType: "shared", notes: "" }] });
+    }
+  }
+  handleCsvText(csv, "demo-amex.csv");
+  showView("upload");
+  toast("Demo loaded", "Confirm the import to try it out.", "ok");
+}
 
-        const hasLocal = (() => {
-          const syncKeys = new Set([...PRIVATE_KEYS]);
-          for (let i = 0; i < localStorage.length; i++) {
-            const k = localStorage.key(i);
-            if (k && !syncKeys.has(k)) return true;
-          }
-          return false;
-        })();
+/* =========================================================================
+   EVENT WIRING
+   ========================================================================= */
+function wireEvents() {
+  // Theme & mode
+  $("#modeToggle").addEventListener("click", () => { state.settings.dark = !state.settings.dark; applyTheme(); saveToLocalStorage(); });
+  $("#themeDots").addEventListener("click", e => { const d = e.target.closest(".theme-dot"); if (!d) return; state.settings.theme = d.dataset.theme; applyTheme(); saveToLocalStorage(); });
 
-        // Cloud exists, nothing local — use cloud
-        if (!hasLocal) {
-          applyFullAppState(cloudState);
-          setSyncStatus('connected', 'Loaded state from cloud.');
-          return;
-        }
+  // Dashboard buttons
+  $("#btnLoadDemo").addEventListener("click", loadDemoData);
+  $("#btnCopyVenmo").addEventListener("click", () => copyToClipboard(venmoMessage(), "Venmo message in clipboard."));
+  $("#btnMarkProcessed").addEventListener("click", markStatementProcessed);
+  $("#btnExportCsv").addEventListener("click", exportSummaryCsv);
+  $("#btnExportReport").addEventListener("click", printableReport);
+  $("#periodStart").addEventListener("change", e => { state.currentStatement.periodStart = e.target.value; saveToLocalStorage(); renderDashboard(); });
+  $("#periodEnd").addEventListener("change", e => { state.currentStatement.periodEnd = e.target.value; saveToLocalStorage(); renderDashboard(); });
+  $("#stmtName").addEventListener("input", e => { state.currentStatement.name = e.target.value; saveToLocalStorage(); });
 
-        const cloudMs = cloudState.updatedAt ? Date.parse(cloudState.updatedAt) : 0;
-        const localMs = (() => {
-          const t = localStorage.getItem(LAST_SYNCED_KEY);
-          // Fall back to scanning stored state for updatedAt
-          return t ? Date.parse(t) : 0;
-        })();
+  // Upload (drag & drop + browse)
+  const dz = $("#dropzone"), fi = $("#fileInput");
+  dz.addEventListener("click", () => fi.click());
+  dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("drag"); });
+  dz.addEventListener("dragleave", () => dz.classList.remove("drag"));
+  dz.addEventListener("drop", e => { e.preventDefault(); dz.classList.remove("drag"); if (e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]); });
+  fi.addEventListener("change", e => { if (e.target.files[0]) readFile(e.target.files[0]); fi.value = ""; });
+  $("#btnDemoUpload").addEventListener("click", loadDemoData);
 
-        if (cloudMs > localMs) {
-          applyFullAppState(cloudState);
-          setSyncStatus('connected', 'Cloud state was newer — applied.');
-        } else if (localMs > cloudMs) {
-          setSyncStatus('connected', 'Local state is newer. Push to cloud to sync.');
-        } else if (!cloudState.updatedAt) {
-          setSyncStatus('connected', 'Warning: cloud state has no timestamp — keeping local.');
-        } else {
-          setSyncStatus('connected', 'In sync.');
-        }
-      }
+  // Review interactions (event delegation)
+  $("#reviewFilters").addEventListener("click", e => { const c = e.target.closest("[data-filter]"); if (c) { activeFilter = c.dataset.filter; renderReview(); } });
+  $("#reviewSearch").addEventListener("input", e => { searchTerm = e.target.value.trim(); renderReview(); });
+  $("#reviewSort").addEventListener("change", e => { sortBy = e.target.value; renderReview(); });
+  $("#reviewTableWrap").addEventListener("click", e => {
+    const splitBtn = e.target.closest(".splitbar button");
+    if (splitBtn) {
+      const id = splitBtn.closest(".splitbar").dataset.id;
+      if (splitBtn.dataset.pct != null) setSplit(id, +splitBtn.dataset.pct);
+      else if (splitBtn.dataset.act === "exclude") excludeTx(id);
+      else if (splitBtn.dataset.act === "custom") customSplit(id);
+      return;
+    }
+    if (e.target.id === "btnEmptyDemo") loadDemoData();
+    const sel = e.target.closest(".rowSel");
+    if (sel) { sel.checked ? selectedRows.add(sel.dataset.id) : selectedRows.delete(sel.dataset.id); updateBulkBar(); }
+    if (e.target.id === "selAll") {
+      const checked = e.target.checked;
+      $$(".rowSel").forEach(cb => { cb.checked = checked; checked ? selectedRows.add(cb.dataset.id) : selectedRows.delete(cb.dataset.id); });
+      updateBulkBar();
+    }
+  });
+  $("#reviewTableWrap").addEventListener("change", e => {
+    const note = e.target.closest(".noteInput");
+    if (note) { const t = state.transactions.find(x => x.id === note.dataset.id); if (t) { t.notes = note.value; saveToLocalStorage(); } }
+  });
+  $("#btnApplyRules").addEventListener("click", applyRulesToCurrent);
 
-      // ── API calls ─────────────────────────────────────────────
-      async function pullCloudState() {
-        const token = getSyncToken();
-        if (!token) { setSyncStatus('local-only', ''); return null; }
+  // Bulk actions
+  $("#bulkBar").addEventListener("click", e => {
+    const b = e.target.closest("[data-bulk]"); if (!b) return;
+    const act = b.dataset.bulk;
+    if (act === "clear") { selectedRows.clear(); renderReview(); return; }
+    selectedRows.forEach(id => {
+      const t = state.transactions.find(x => x.id === id); if (!t) return;
+      if (act === "exclude") { t.status = "excluded"; t.splitType = "exclude"; }
+      else if (act === "review") { t.status = "needs-review"; t.splitType = "needs-review"; }
+      else { t.kind = "expense"; setSplitSilent(t, +act); }
+    });
+    selectedRows.clear(); saveToLocalStorage(); renderReview(); updateNavBadge();
+    toast("Bulk applied", "Selected transactions updated.");
+  });
 
-        setSyncStatus('syncing', 'Pulling from cloud…');
-        try {
-          const res = await fetch('/api/get-state', {
-            headers: { 'Authorization': `Bearer ${token}` },
-          });
-          if (res.status === 401) { setSyncStatus('error', 'Invalid sync token.'); return null; }
-          if (!res.ok)            { setSyncStatus('error', `Server error ${res.status}.`); return null; }
-          const data = await res.json();
-          setSyncStatus('connected', 'Pull complete.');
-          return data.state || null;
-        } catch {
-          setSyncStatus('error', 'Network error pulling state.');
-          return null;
-        }
-      }
+  // Past statements
+  $("#pastList").addEventListener("click", e => {
+    const id = (a) => e.target.closest("[data-past-" + a + "]")?.getAttribute("data-past-" + a);
+    if (id("view")) viewStatementDetails(id("view"));
+    else if (id("copy")) { const st = state.pastStatements.find(s => s.id === id("copy")); copyToClipboard(`${state.settings.partnerName} owes ${state.settings.lukeName} ${money(st.hannahOwed)} for shared Amex expenses from ${fmtDate(st.periodStart)} to ${fmtDate(st.periodEnd)}.`, "Old Venmo message copied."); }
+    else if (id("export")) exportStatementCsv(id("export"));
+    else if (id("reopen")) reopenStatement(id("reopen"));
+    else if (id("delete")) deleteStatement(id("delete"));
+  });
 
-      async function pushCloudState() {
-        const token = getSyncToken();
-        if (!token) { setSyncStatus('local-only', ''); return false; }
+  // Rules
+  $("#btnAddRule").addEventListener("click", () => editRule(null));
+  $("#btnApplyRulesPage").addEventListener("click", applyRulesToCurrent);
+  $("#btnResetRules").addEventListener("click", () => { if (confirm("Reset all rules to defaults?")) { state.rules = defaultRules(); saveToLocalStorage(); renderRules(); toast("Rules reset"); } });
+  $("#rulesList").addEventListener("click", e => {
+    const ed = e.target.closest("[data-rule-edit]"); if (ed) return editRule(ed.dataset.ruleEdit);
+    const del = e.target.closest("[data-rule-del]"); if (del) { state.rules = state.rules.filter(r => r.id !== del.dataset.ruleDel); saveToLocalStorage(); renderRules(); toast("Rule deleted"); return; }
+    const tog = e.target.closest("[data-rule-toggle]"); if (tog) { const r = state.rules.find(x => x.id === tog.dataset.ruleToggle); r.active = !r.active; saveToLocalStorage(); renderRules(); }
+  });
 
-        setSyncStatus('syncing', 'Pushing to cloud…');
-        try {
-          const state = getFullAppState();
-          const res = await fetch('/api/save-state', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(state),
-          });
-          if (res.status === 401) { setSyncStatus('error', 'Invalid sync token.'); return false; }
-          if (res.status === 413) { setSyncStatus('error', 'State too large to sync.'); return false; }
-          if (!res.ok)            { setSyncStatus('error', `Server error ${res.status}.`); return false; }
-          const data = await res.json();
-          localStorage.setItem(LAST_SYNCED_KEY, data.savedAt);
-          setSyncStatus('connected', `Saved at ${new Date(data.savedAt).toLocaleTimeString()}.`);
-          updateLastSyncedDisplay();
-          return true;
-        } catch {
-          setSyncStatus('error', 'Network error pushing state.');
-          return false;
-        }
-      }
+  // Settings inputs
+  const bindText = (id, key, isNum) => $(id).addEventListener("input", e => { state.settings[key] = isNum ? (parseInt(e.target.value) || 0) : e.target.value; saveToLocalStorage(); refreshAll(); });
+  bindText("#setLuke", "lukeName"); bindText("#setPartner", "partnerName");
+  bindText("#setDefaultPct", "defaultPct", true); bindText("#setCurrency", "currency");
+  $("#setDefaultSplit").addEventListener("change", e => { state.settings.defaultSplit = e.target.value; saveToLocalStorage(); });
+  $("#setTheme").addEventListener("change", e => { state.settings.theme = e.target.value; applyTheme(); saveToLocalStorage(); });
+  $$("[data-setting]").forEach(btn => btn.classList.contains("toggle") && btn.addEventListener("click", () => {
+    const k = btn.dataset.setting; state.settings[k] = !state.settings[k];
+    if (k === "dark" || k === "theme") applyTheme();
+    saveToLocalStorage(); renderSettings(); refreshAll();
+  }));
 
-      function scheduleCloudSync() {
-        if (!getSyncToken()) return;
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => { pushCloudState(); }, DEBOUNCE_MS);
-      }
+  // Data management
+  $("#btnExportJson").addEventListener("click", exportAllDataJson);
+  $("#btnImportJson").addEventListener("click", () => $("#importJsonInput").click());
+  $("#importJsonInput").addEventListener("change", e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => importAllDataJson(r.result); r.readAsText(f); e.target.value = ""; });
+  $("#btnClearCurrent").addEventListener("click", () => { if (confirm("Clear the current statement's transactions? (Past statements are kept.)")) { state.transactions = []; state.currentStatement = { name: "", periodStart: "", periodEnd: "" }; saveToLocalStorage(); refreshAll(); toast("Cleared", "Current statement reset."); } });
+  $("#btnDeleteAll").addEventListener("click", () => { if (confirm("Delete ALL local data including rules and history? This cannot be undone.")) { localStorage.removeItem(LS_KEY); state = { settings: defaultSettings(), rules: defaultRules(), transactions: [], pastStatements: [], processedHashes: {}, currentStatement: { name: "", periodStart: "", periodEnd: "" } }; applyTheme(); refreshAll(); showView("dashboard"); toast("Deleted", "All local data removed.", "warn"); } });
+}
 
-      async function testCloudConnection() {
-        const token = getSyncToken();
-        if (!token) { setSyncStatus('local-only', 'No sync token set.'); return false; }
+function setSplitSilent(t, pct) {
+  t.hannahPercent = pct; t.status = "reviewed";
+  t.splitType = pct === 50 ? "shared" : pct === 0 ? "luke" : pct === 100 ? "hannah" : "custom";
+}
 
-        setSyncStatus('syncing', 'Testing connection…');
-        try {
-          const res = await fetch('/api/get-state', {
-            headers: { 'Authorization': `Bearer ${token}` },
-          });
-          if (res.status === 401) { setSyncStatus('error', 'Invalid sync token.'); return false; }
-          if (!res.ok)            { setSyncStatus('error', `Server error ${res.status}.`); return false; }
-          setSyncStatus('connected', 'Connection OK.');
-          return true;
-        } catch {
-          setSyncStatus('error', 'Network error — is Vercel running?');
-          return false;
-        }
-      }
+function customSplit(id) {
+  const t = state.transactions.find(x => x.id === id); if (!t) return;
+  const amt = Math.abs(t.amount);
+  openModal(`<h3>Custom split</h3><div class="modal-sub">${esc(t.merchantName)} &middot; ${money(amt)}</div>
+    <div class="field"><label>${esc(state.settings.partnerName)}'s percentage</label><input id="csPct" type="number" min="0" max="100" value="${t.hannahPercent || state.settings.defaultPct}"><div class="hint">Or enter an exact dollar amount below and the % is computed.</div></div>
+    <div class="field"><label>${esc(state.settings.partnerName)} owes ($)</label><input id="csAmt" type="number" min="0" step="0.01" placeholder="auto"></div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" id="csSave">Apply</button></div>`);
+  $("#csAmt").addEventListener("input", e => { const v = parseFloat(e.target.value); if (!isNaN(v) && amt > 0) $("#csPct").value = clamp(Math.round(v / amt * 100), 0, 100); });
+  $("#csSave").addEventListener("click", () => { const pct = clamp(parseInt($("#csPct").value) || 0, 0, 100); closeModal(); setSplit(id, pct); });
+}
 
-      // ── Status UI ─────────────────────────────────────────────
-      function setSyncStatus(status, message) {
-        currentStatus = status;
-        const badge = document.getElementById('fs-sync-badge');
-        const msg   = document.getElementById('fs-sync-message');
-        if (badge) {
-          const LABELS = {
-            'local-only': 'Local only',
-            'connected':  'Connected',
-            'syncing':    'Syncing…',
-            'error':      'Sync failed',
-          };
-          badge.className = `fs-sync-badge fs-sync-${status}`;
-          badge.textContent = LABELS[status] || status;
-        }
-        if (msg) msg.textContent = message || '';
-      }
+function applyRulesToCurrent() {
+  let changed = 0;
+  for (const t of state.transactions) {
+    if (t.status === "processed") continue;
+    const before = JSON.stringify([t.status, t.hannahPercent, t.splitType, t.kind]);
+    // re-run classification but don't clobber user-reviewed rows unless still needs-review
+    if (t.status === "reviewed" || t.status === "excluded") continue;
+    classifyTransaction(t, state.rules, state.settings);
+    if (JSON.stringify([t.status, t.hannahPercent, t.splitType, t.kind]) !== before) changed++;
+  }
+  saveToLocalStorage(); renderReview(); updateNavBadge();
+  toast("Rules applied", `${changed} transaction(s) updated.`);
+}
 
-      function updateLastSyncedDisplay() {
-        const el = document.getElementById('fs-last-synced');
-        if (!el) return;
-        const t = localStorage.getItem(LAST_SYNCED_KEY);
-        el.textContent = t
-          ? `Last synced: ${new Date(t).toLocaleString()}`
-          : 'Not yet synced';
-      }
+function reopenStatement(id) {
+  const idx = state.pastStatements.findIndex(s => s.id === id); if (idx === -1) return;
+  if (state.transactions.length && !confirm("You have an active statement. Merge the reopened transactions into it?")) return;
+  const st = state.pastStatements[idx];
+  // remove its processed hashes so they aren't excluded
+  for (const t of st.transactions) if (state.processedHashes[t.transactionHash] === id) delete state.processedHashes[t.transactionHash];
+  st.transactions.forEach(t => { t.statementId = null; if (t.status === "processed") t.status = "needs-review"; });
+  state.transactions.push(...st.transactions);
+  state.currentStatement = { name: st.name, periodStart: st.periodStart, periodEnd: st.periodEnd };
+  state.pastStatements.splice(idx, 1);
+  saveToLocalStorage(); showView("review"); toast("Reopened", `${st.name} is editable again.`);
+}
+function deleteStatement(id) {
+  const st = state.pastStatements.find(s => s.id === id); if (!st) return;
+  if (!confirm(`Delete "${st.name}"? Its transactions will no longer be excluded from uploads.`)) return;
+  for (const t of st.transactions) if (state.processedHashes[t.transactionHash] === id) delete state.processedHashes[t.transactionHash];
+  state.pastStatements = state.pastStatements.filter(s => s.id !== id);
+  saveToLocalStorage(); renderPast(); toast("Deleted", st.name, "warn");
+}
 
-      // ── Settings UI wiring ────────────────────────────────────
-      function wireSyncUI() {
-        const tokenInput = document.getElementById('fs-sync-token-input');
-        const saveBtn    = document.getElementById('fs-sync-save-btn');
-        const testBtn    = document.getElementById('fs-sync-test-btn');
-        const pullBtn    = document.getElementById('fs-sync-pull-btn');
-        const pushBtn    = document.getElementById('fs-sync-push-btn');
-        const clearBtn   = document.getElementById('fs-sync-clear-btn');
+function readFile(file) {
+  if (!/\.csv$/i.test(file.name) && file.type !== "text/csv") { toast("Wrong file type", "Please upload a .csv export.", "err"); return; }
+  const reader = new FileReader();
+  reader.onload = () => handleCsvText(reader.result, file.name);
+  reader.onerror = () => toast("Read error", "Couldn't read that file.", "err");
+  reader.readAsText(file);
+}
 
-        if (tokenInput && getSyncToken()) {
-          tokenInput.value = '••••••••••••••••••••';
-          tokenInput.dataset.masked = 'true';
-        }
+// Re-render whatever view is active (used after settings changes).
+function refreshAll() {
+  applyTheme();
+  const active = $(".view.active");
+  if (active) showView(active.id.replace("view-", ""));
+}
 
-        if (tokenInput) {
-          tokenInput.addEventListener('focus', () => {
-            if (tokenInput.dataset.masked === 'true') { tokenInput.value = ''; tokenInput.dataset.masked = 'false'; }
-          });
-          tokenInput.addEventListener('blur', () => {
-            if (!tokenInput.value && getSyncToken()) {
-              tokenInput.value = '••••••••••••••••••••';
-              tokenInput.dataset.masked = 'true';
-            }
-          });
-        }
+/* =========================================================================
+   INIT
+   ========================================================================= */
+function init() {
+  loadFromLocalStorage();
+  applyTheme();
+  wireEvents();
+  renderDashboard();
+  // Friendly first-run nudge
+  if (state.transactions.length === 0 && state.pastStatements.length === 0) {
+    setTimeout(() => toast("Welcome to Finance Splitter 👋", "Load demo data or upload an Amex CSV to begin.", "ok", 5000), 600);
+  }
+}
+window.closeModal = closeModal; // expose for inline onclick in modals
 
-        if (saveBtn) {
-          saveBtn.addEventListener('click', async () => {
-            const val = (tokenInput?.value || '').trim();
-            if (!val || val.startsWith('•')) {
-              alert('Please paste a new sync token first.');
-              return;
-            }
-            setSyncToken(val);
-            if (tokenInput) { tokenInput.value = '••••••••••••••••••••'; tokenInput.dataset.masked = 'true'; }
-            await testCloudConnection();
-            updateLastSyncedDisplay();
-          });
-        }
+// Exposed for debugging/inspection from the browser console (e.g.
+// `FinanceSplitter.state`, `FinanceSplitter.totals()`). Harmless in a
+// prototype and handy when tinkering before the Vercel port.
+window.FinanceSplitter = {
+  get state() { return state; },
+  get pending() { return pendingImport; },
+  totals: calculateDashboardTotals,
+  save: saveToLocalStorage
+};
 
-        testBtn  && testBtn .addEventListener('click', () => testCloudConnection());
-        pushBtn  && pushBtn .addEventListener('click', () => pushCloudState());
+init();
+</script>
 
-        if (pullBtn) {
-          pullBtn.addEventListener('click', async () => {
-            const state = await pullCloudState();
-            if (state) { mergeCloudStateIntoLocal(state); updateLastSyncedDisplay(); }
-          });
-        }
+<script>
+/* =========================================================================
+   Finance Splitter — Cloud Sync Module
+   State is stored as a single blob at localStorage["financeSplitter:v1"].
+   This module wraps it in metadata, syncs to /api/save-state, and pulls
+   from /api/get-state. All CSV parsing stays browser-only; only normalized
+   app state is ever sent to the server.
+   ========================================================================= */
+(function () {
+  'use strict';
 
-        if (clearBtn) {
-          clearBtn.addEventListener('click', () => {
-            if (!confirm('Clear sync token? The app will revert to local-only mode.')) return;
-            clearSyncToken();
-            if (tokenInput) { tokenInput.value = ''; tokenInput.dataset.masked = 'false'; }
-            setSyncStatus('local-only', 'Sync token cleared.');
-            updateLastSyncedDisplay();
-          });
-        }
-      }
+  const APP_LS_KEY  = 'financeSplitter:v1';
+  const TOKEN_KEY   = 'fs_sync_token';
+  const DEVICE_KEY  = 'fs_device_id';
+  const SYNCED_KEY  = 'fs_last_synced';
+  const DEBOUNCE_MS = 2500;
 
-      // ── Boot ──────────────────────────────────────────────────
-      async function boot() {
-        generateDeviceId();
-        updateLastSyncedDisplay();
+  let debounceTimer = null;
+  let syncStatus    = 'local-only';
 
-        const token = getSyncToken();
-        if (!token) { setSyncStatus('local-only', ''); return; }
+  // ── Device ID ────────────────────────────────────────────────
+  function getDeviceId() {
+    let id = localStorage.getItem(DEVICE_KEY);
+    if (!id) {
+      id = 'dev-' + Math.random().toString(36).slice(2, 10) + '-' + Date.now().toString(36).slice(-6);
+      localStorage.setItem(DEVICE_KEY, id);
+    }
+    return id;
+  }
 
-        const cloudState = await pullCloudState();
-        if (cloudState) mergeCloudStateIntoLocal(cloudState);
-        updateLastSyncedDisplay();
-      }
+  // ── Token ────────────────────────────────────────────────────
+  function getToken()   { return localStorage.getItem(TOKEN_KEY) || null; }
+  function clearToken() { localStorage.removeItem(TOKEN_KEY); }
+  function setToken(t)  { t = (t || '').trim(); if (!t) return false; localStorage.setItem(TOKEN_KEY, t); return true; }
 
-      // ── Public API (call from your app code) ──────────────────
-      window.fsSyncTrigger   = scheduleCloudSync;   // call after any state change
-      window.fsPushState     = pushCloudState;
-      window.fsPullState     = pullCloudState;
-      window.fsTestSync      = testCloudConnection;
-      window.fsGetSyncStatus = () => currentStatus;
+  // ── State pack / unpack ──────────────────────────────────────
+  function packState() {
+    let appState = null;
+    try { appState = JSON.parse(localStorage.getItem(APP_LS_KEY) || 'null'); } catch { /* empty */ }
+    return {
+      appName:        'Finance Splitter',
+      schemaVersion:  1,
+      updatedAt:      new Date().toISOString(),
+      deviceId:       getDeviceId(),
+      lastSyncSource: 'local',
+      appState:       appState,
+    };
+  }
 
-      // Also expose the full sync object for advanced use
-      window.FinanceSplitterSync = {
-        pull:          pullCloudState,
-        push:          pushCloudState,
-        test:          testCloudConnection,
-        trigger:       scheduleCloudSync,
-        getState:      getFullAppState,
-        applyState:    applyFullAppState,
-        mergeState:    mergeCloudStateIntoLocal,
-        getToken:      getSyncToken,
-        setToken:      setSyncToken,
-        clearToken:    clearSyncToken,
-        getStatus:     () => currentStatus,
-        setStatus:     setSyncStatus,
-        generateDeviceId,
-      };
+  function unpackAndApply(cloudPayload) {
+    if (!cloudPayload || !cloudPayload.appState) return false;
+    try {
+      localStorage.setItem(APP_LS_KEY, JSON.stringify(cloudPayload.appState));
+      if (typeof loadFromLocalStorage === 'function') loadFromLocalStorage();
+      if (typeof refreshAll           === 'function') refreshAll();
+      return true;
+    } catch { return false; }
+  }
 
-      // Wire up after DOM is ready
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => { wireSyncUI(); boot(); });
-      } else {
-        wireSyncUI();
-        boot();
-      }
-    })();
-  </script>
+  // ── Merge ────────────────────────────────────────────────────
+  function mergeCloud(cloudPayload) {
+    if (!cloudPayload) return;
+    const hasLocal = !!localStorage.getItem(APP_LS_KEY);
+    if (!hasLocal) {
+      if (unpackAndApply(cloudPayload)) setSyncStatus('connected', 'Loaded state from cloud.');
+      return;
+    }
+    const cloudMs  = cloudPayload.updatedAt ? Date.parse(cloudPayload.updatedAt) : 0;
+    const syncedMs = (() => { try { return Date.parse(localStorage.getItem(SYNCED_KEY) || ''); } catch { return 0; } })();
+    if (cloudMs > syncedMs) {
+      if (unpackAndApply(cloudPayload)) setSyncStatus('connected', 'Cloud state was newer — applied.');
+    } else {
+      setSyncStatus('connected', cloudMs < syncedMs ? 'Local state is newer. Push to sync.' : 'Already in sync.');
+    }
+  }
 
+  // ── API calls ────────────────────────────────────────────────
+  async function pullCloud() {
+    const token = getToken(); if (!token) { setSyncStatus('local-only', ''); return null; }
+    setSyncStatus('syncing', 'Pulling from cloud…');
+    try {
+      const r = await fetch('/api/get-state', { headers: { Authorization: `Bearer ${token}` } });
+      if (r.status === 401) { setSyncStatus('error', 'Invalid token.'); return null; }
+      if (!r.ok)            { setSyncStatus('error', `Server error ${r.status}.`); return null; }
+      const d = await r.json();
+      setSyncStatus('connected', 'Pull complete.');
+      return d.state || null;
+    } catch { setSyncStatus('error', 'Network error.'); return null; }
+  }
+
+  async function pushCloud() {
+    const token = getToken(); if (!token) { setSyncStatus('local-only', ''); return false; }
+    setSyncStatus('syncing', 'Pushing to cloud…');
+    try {
+      const r = await fetch('/api/save-state', {
+        method:  'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body:    JSON.stringify(packState()),
+      });
+      if (r.status === 401) { setSyncStatus('error', 'Invalid token.'); return false; }
+      if (r.status === 413) { setSyncStatus('error', 'State too large.'); return false; }
+      if (!r.ok)            { setSyncStatus('error', `Server error ${r.status}.`); return false; }
+      const d = await r.json();
+      localStorage.setItem(SYNCED_KEY, d.savedAt);
+      setSyncStatus('connected', `Saved ${new Date(d.savedAt).toLocaleTimeString()}.`);
+      updateLastSynced();
+      return true;
+    } catch { setSyncStatus('error', 'Network error.'); return false; }
+  }
+
+  function scheduleSync() {
+    if (!getToken()) return;
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(pushCloud, DEBOUNCE_MS);
+  }
+
+  async function testConnection() {
+    const token = getToken(); if (!token) { setSyncStatus('local-only', 'No token set.'); return false; }
+    setSyncStatus('syncing', 'Testing…');
+    try {
+      const r = await fetch('/api/get-state', { headers: { Authorization: `Bearer ${token}` } });
+      if (r.status === 401) { setSyncStatus('error', 'Invalid token.'); return false; }
+      if (!r.ok)            { setSyncStatus('error', `Error ${r.status}.`); return false; }
+      setSyncStatus('connected', 'Connection OK.');
+      return true;
+    } catch { setSyncStatus('error', 'Network error.'); return false; }
+  }
+
+  // ── Status UI ────────────────────────────────────────────────
+  const STATUS_LABELS = { 'local-only': 'Local only', 'connected': 'Connected', 'syncing': 'Syncing…', 'error': 'Sync failed' };
+
+  function setSyncStatus(status, msg) {
+    syncStatus = status;
+    const badge = document.getElementById('fsSyncBadge');
+    const msgEl = document.getElementById('fsSyncMsg');
+    if (badge) { badge.className = `sync-badge sync-${status}`; badge.textContent = STATUS_LABELS[status] || status; }
+    if (msgEl) msgEl.textContent = msg || '';
+  }
+
+  function updateLastSynced() {
+    const el = document.getElementById('fsSyncLast');
+    if (!el) return;
+    const t = localStorage.getItem(SYNCED_KEY);
+    el.textContent = t ? `Last synced: ${new Date(t).toLocaleString()}` : 'Not yet synced';
+  }
+
+  // ── Settings UI wiring ───────────────────────────────────────
+  function wireUI() {
+    const tokenInput = document.getElementById('fsSyncToken');
+    const saveBtn    = document.getElementById('fsSyncSaveBtn');
+    const testBtn    = document.getElementById('fsSyncTestBtn');
+    const pullBtn    = document.getElementById('fsSyncPullBtn');
+    const pushBtn    = document.getElementById('fsSyncPushBtn');
+    const clearBtn   = document.getElementById('fsSyncClearBtn');
+
+    if (tokenInput && getToken()) {
+      tokenInput.value = '••••••••••••••••••••';
+      tokenInput.dataset.masked = 'true';
+    }
+    tokenInput?.addEventListener('focus', () => {
+      if (tokenInput.dataset.masked === 'true') { tokenInput.value = ''; tokenInput.dataset.masked = 'false'; }
+    });
+    tokenInput?.addEventListener('blur', () => {
+      if (!tokenInput.value && getToken()) { tokenInput.value = '••••••••••••••••••••'; tokenInput.dataset.masked = 'true'; }
+    });
+
+    saveBtn?.addEventListener('click', async () => {
+      const v = (tokenInput?.value || '').trim();
+      if (!v || v.includes('•')) { toast('Sync', 'Paste a new sync token first.', 'warn'); return; }
+      setToken(v);
+      if (tokenInput) { tokenInput.value = '••••••••••••••••••••'; tokenInput.dataset.masked = 'true'; }
+      await testConnection();
+      updateLastSynced();
+    });
+
+    testBtn?.addEventListener('click', () => testConnection());
+    pushBtn?.addEventListener('click', () => pushCloud());
+    pullBtn?.addEventListener('click', async () => {
+      const payload = await pullCloud();
+      if (payload) { mergeCloud(payload); updateLastSynced(); }
+    });
+    clearBtn?.addEventListener('click', () => {
+      if (!confirm('Clear sync token? Reverts to local-only mode.')) return;
+      clearToken();
+      if (tokenInput) { tokenInput.value = ''; tokenInput.dataset.masked = 'false'; }
+      setSyncStatus('local-only', 'Token cleared.');
+      updateLastSynced();
+    });
+
+    updateLastSynced();
+  }
+
+  // ── Boot ─────────────────────────────────────────────────────
+  async function boot() {
+    getDeviceId();
+    wireUI();
+    const token = getToken();
+    if (!token) { setSyncStatus('local-only', ''); return; }
+    const payload = await pullCloud();
+    if (payload) mergeCloud(payload);
+    updateLastSynced();
+  }
+
+  // ── Public API ───────────────────────────────────────────────
+  window.fsSyncTrigger = scheduleSync;
+  window.FinanceSplitterSync = {
+    pull: pullCloud, push: pushCloud, test: testConnection, trigger: scheduleSync,
+    getToken, setToken, clearToken, getStatus: () => syncStatus,
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+})();
+</script>
 </body>
 </html>

@@ -14,3 +14,4 @@ exports/
 uploads/
 statements/
 samples/private/
+.vercel
