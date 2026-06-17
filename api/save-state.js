@@ -1,4 +1,4 @@
-import { Redis } from '@upstash/redis';
+import { createClient } from 'redis';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -9,35 +9,11 @@ const CORS_HEADERS = {
 const MAX_BODY_BYTES = 1024 * 1024; // 1 MB
 const MAX_BACKUPS = 20;
 
-// Supports two env var shapes:
-//   1. KV_REST_API_URL + KV_REST_API_TOKEN  (explicitly set)
-//   2. REDIS_URL  (set by Vercel's Upstash marketplace integration)
-//      Format: rediss://default:TOKEN@hostname.upstash.io:PORT
-function getRedisClient() {
-  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
-    console.log('[redis] using KV_REST_API_URL');
-    return new Redis({ url: process.env.KV_REST_API_URL, token: process.env.KV_REST_API_TOKEN });
-  }
-  if (process.env.REDIS_URL) {
-    const u = new URL(process.env.REDIS_URL);
-    const restUrl = `https://${u.hostname}`;
-    console.log('[redis] parsed REDIS_URL → hostname:', u.hostname, 'has password:', !!u.password);
-    return new Redis({ url: restUrl, token: u.password });
-  }
-  console.error('[redis] no credentials found. env keys:', Object.keys(process.env).filter(k => k.includes('REDIS') || k.includes('KV')));
-  throw new Error('No Redis credentials configured');
-}
-
 export default async function handler(req, res) {
   Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const auth = req.headers.authorization;
   if (!auth || auth !== `Bearer ${process.env.SHARED_SECRET}`) {
@@ -54,39 +30,33 @@ export default async function handler(req, res) {
     return res.status(413).json({ error: 'Request body too large' });
   }
 
-  let redis;
-  try {
-    redis = getRedisClient();
-  } catch {
-    return res.status(500).json({ error: 'Storage unavailable' });
-  }
-
   const savedAt = new Date().toISOString();
   const backupKey = `finance-splitter:backup:${savedAt}`;
 
+  const client = createClient({ url: process.env.REDIS_URL });
   try {
-    await redis.set('finance-splitter:state', body);
-    await redis.set(backupKey, body);
+    await client.connect();
+
+    await client.set('finance-splitter:state', bodyStr);
+    await client.set(backupKey, bodyStr);
 
     // Track backup keys in a sorted set by timestamp; prune oldest beyond MAX_BACKUPS
-    await redis.zadd('finance-splitter:backup-index', {
-      score: Date.now(),
-      member: backupKey,
-    });
+    await client.zAdd('finance-splitter:backup-index', { score: Date.now(), value: backupKey });
 
-    const backupCount = await redis.zcard('finance-splitter:backup-index');
+    const backupCount = await client.zCard('finance-splitter:backup-index');
     if (backupCount > MAX_BACKUPS) {
       const excess = backupCount - MAX_BACKUPS;
-      const oldKeys = await redis.zrange('finance-splitter:backup-index', 0, excess - 1);
+      const oldKeys = await client.zRange('finance-splitter:backup-index', 0, excess - 1);
       if (oldKeys.length > 0) {
-        await Promise.all(oldKeys.map((k) => redis.del(k)));
-        await redis.zremrangebyrank('finance-splitter:backup-index', 0, excess - 1);
+        await client.del(oldKeys);
+        await client.zRemRangeByRank('finance-splitter:backup-index', 0, excess - 1);
       }
     }
 
     return res.status(200).json({ ok: true, savedAt });
-  } catch (err) {
-    console.error('[save-state] Redis error:', err?.message, err?.cause);
+  } catch {
     return res.status(500).json({ error: 'Failed to save state' });
+  } finally {
+    client.disconnect().catch(() => {});
   }
 }
