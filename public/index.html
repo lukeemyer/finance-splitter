@@ -416,8 +416,8 @@ tr.row-excluded { opacity: .68; }
       <div class="dropzone" id="dropzone">
         <div class="dz-ico">📥</div>
         <h3>Drag &amp; drop your Amex CSV</h3>
-        <p>or click to browse &middot; <span class="helper">.csv files only</span></p>
-        <input type="file" id="fileInput" accept=".csv,text/csv" hidden />
+        <p>or click to browse &middot; <span class="helper">.csv or .xlsx</span></p>
+        <input type="file" id="fileInput" accept=".csv,.xlsx,.xls,text/csv" hidden />
       </div>
       <div class="btn-row" style="margin-top:12px">
         <button class="btn" id="btnDemoUpload">✨ Use demo data instead</button>
@@ -1805,11 +1805,32 @@ function deleteStatement(id) {
 }
 
 function readFile(file) {
-  if (!/\.csv$/i.test(file.name) && file.type !== "text/csv") { toast("Wrong file type", "Please upload a .csv export.", "err"); return; }
+  const name = file.name.toLowerCase();
+  const isExcel = /\.(xlsx|xls)$/.test(name);
+  const isCsv   = /\.csv$/.test(name) || file.type === "text/csv";
+  if (!isExcel && !isCsv) { toast("Wrong file type", "Please upload a .csv or .xlsx file.", "err"); return; }
+
   const reader = new FileReader();
-  reader.onload = () => handleCsvText(reader.result, file.name);
   reader.onerror = () => toast("Read error", "Couldn't read that file.", "err");
-  reader.readAsText(file);
+
+  if (isExcel) {
+    reader.onload = () => {
+      try {
+        const wb = XLSX.read(reader.result, { type: "array" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const csv = XLSX.utils.sheet_to_csv(ws);
+        // Amex xlsx exports have metadata rows above the actual column headers.
+        // Find the first row that contains Date + Amount + Description and strip above it.
+        const lines = csv.split("\n");
+        const hi = lines.findIndex(l => /\bdate\b/i.test(l) && /\bamount\b/i.test(l) && /\bdescription\b/i.test(l));
+        handleCsvText(hi > 0 ? lines.slice(hi).join("\n") : csv, file.name);
+      } catch { toast("Excel error", "Couldn't parse that Excel file.", "err"); }
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    reader.onload = () => handleCsvText(reader.result, file.name);
+    reader.readAsText(file);
+  }
 }
 
 // Re-render whatever view is active (used after settings changes).
@@ -1846,6 +1867,8 @@ window.FinanceSplitter = {
 
 init();
 </script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 
 <script>
 /* =========================================================================
