@@ -2,5 +2,8 @@
   "outputDirectory": "public",
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
-  ]
+  ],
+  "functions": {
+    "api/parse-receipt.js": { "maxDuration": 30 }
+  }
 }

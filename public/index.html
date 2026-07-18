@@ -2141,6 +2141,7 @@ function renderQueue() {
           <input class="custom-pct-input" type="number" min="0" max="100" data-id="${t.id}" value="${customVal}" placeholder="%" title="Custom %">
         </div>
         <div class="queue-actions">
+          <button class="btn" id="queueReceiptBtn">🧾 Add Receipt</button>
           <button class="btn" id="queueSkipBtn">↩ Skip for now</button>
           <button class="btn" id="queueExcludeBtn">✕ Exclude</button>
         </div>
@@ -2178,6 +2179,7 @@ function renderQueue() {
   }
 
   // Other actions
+  const rcBtn = $("#queueReceiptBtn"); if (rcBtn) rcBtn.addEventListener("click", () => openReceiptModal(t));
   const skipBtn = $("#queueSkipBtn"); if (skipBtn) skipBtn.addEventListener("click", queueSkip);
   const exBtn   = $("#queueExcludeBtn"); if (exBtn) exBtn.addEventListener("click", () => queueExcludeItem(t.id));
   const mrBtn   = $("#queueMarkRest"); if (mrBtn) mrBtn.addEventListener("click", queueMarkRest);
@@ -2189,7 +2191,10 @@ function renderQueue() {
 function snapshotForUndo(t) {
   lastQueueAction = {
     id: t.id,
-    prev: { status: t.status, splitType: t.splitType, hannahPercent: t.hannahPercent, kind: t.kind },
+    prev: {
+      status: t.status, splitType: t.splitType, hannahPercent: t.hannahPercent, kind: t.kind,
+      receiptItems: t.receiptItems, receiptTax: t.receiptTax, receiptTip: t.receiptTip
+    },
     streakBefore: queueStreak
   };
 }
@@ -2199,6 +2204,7 @@ function queueUndo() {
   const t = state.transactions.find(x => x.id === lastQueueAction.id);
   if (!t) { toast("Can't undo", "That transaction no longer exists."); lastQueueAction = null; return; }
   Object.assign(t, lastQueueAction.prev);
+  if (lastQueueAction.prev.receiptItems === undefined) { delete t.receiptItems; delete t.receiptTax; delete t.receiptTip; }
   queueStreak = lastQueueAction.streakBefore;
   lastQueueAction = null;
   saveToLocalStorage(); updateNavBadge(); renderQueue();
@@ -2247,6 +2253,181 @@ function queueMarkRest() {
   if (!confirm(`Mark the ${remaining.length} remaining transaction(s) as settled/excluded?`)) return;
   remaining.forEach(t => { t.status = "excluded"; t.splitType = "exclude"; });
   saveToLocalStorage(); updateNavBadge(); queueIdx = 0; lastQueueAction = null; renderQueue();
+}
+
+/* =========================================================================
+   RECEIPT: photo -> itemized split (One at a Time / Queue view only)
+   The photo itself is never persisted — only the extracted item list,
+   tax, and tip are kept on the transaction (small text/number fields,
+   nowhere near the 1MB save-state.js cap on the whole synced state blob).
+   ========================================================================= */
+let receiptState = null; // { transactionId, parsed: {items, tax, tip, total}, assignments: [] }
+
+function openReceiptModal(t) {
+  receiptState = { transactionId: t.id };
+  renderReceiptUpload(t);
+}
+
+function renderReceiptUpload(t) {
+  openModal(`
+    <h3>🧾 Add Receipt</h3>
+    <div class="modal-sub">Upload a photo of the receipt for <strong>${esc(t.merchantName)}</strong> (${money(Math.abs(t.amount))}). The receipt total must match this charge.</div>
+    <div class="dropzone" id="receiptDropzone">
+      <div class="dz-ico">📷</div>
+      <h3>Take or upload a photo</h3>
+      <p>or click to browse</p>
+      <input type="file" id="receiptFileInput" accept="image/*" capture="environment" hidden>
+    </div>
+    <div id="receiptUploadStatus" class="helper" style="margin-top:10px"></div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button></div>`);
+
+  const dz = $("#receiptDropzone"), fi = $("#receiptFileInput");
+  dz.addEventListener("click", () => fi.click());
+  fi.addEventListener("change", e => { const f = e.target.files[0]; if (f) handleReceiptFile(t, f); fi.value = ""; });
+}
+
+async function handleReceiptFile(t, file) {
+  const statusEl = $("#receiptUploadStatus");
+  if (statusEl) statusEl.textContent = "Reading photo…";
+  let dataUrl;
+  try {
+    dataUrl = await resizeImageForUpload(file);
+  } catch {
+    if (statusEl) statusEl.textContent = "Couldn't read that photo. Try a different one.";
+    return;
+  }
+
+  const token = window.FinanceSplitterSync ? window.FinanceSplitterSync.getToken() : null;
+  if (!token) { closeModal(); toast("Sync token required", "Set a sync token in Settings to use Add Receipt.", "err"); return; }
+
+  if (statusEl) statusEl.textContent = "Parsing receipt…";
+  try {
+    const r = await fetch("/api/parse-receipt", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ image: dataUrl })
+    });
+    const d = await r.json();
+    if (!r.ok) { if (statusEl) statusEl.textContent = d.error || "Could not read that receipt."; return; }
+
+    const chargeAmt = Math.abs(t.amount);
+    receiptState.parsed = { items: d.items || [], tax: d.tax || 0, tip: d.tip || 0, total: d.total };
+    if (Math.abs(d.total - chargeAmt) > 0.02) {
+      renderReceiptMismatch(t, d.total, chargeAmt);
+    } else {
+      receiptState.assignments = receiptState.parsed.items.map(() => "shared");
+      renderReceiptItems(t);
+    }
+  } catch {
+    if (statusEl) statusEl.textContent = "Network error — try again.";
+  }
+}
+
+function renderReceiptMismatch(t, receiptTotal, chargeAmt) {
+  openModal(`
+    <h3>🧾 Add Receipt</h3>
+    <div class="modal-sub" style="color:var(--danger)">⚠️ This receipt doesn't match the charge.</div>
+    <p>Receipt total: <strong>${money(receiptTotal)}</strong><br>Charge amount: <strong>${money(chargeAmt)}</strong></p>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" id="receiptRetryBtn">Try Another Photo</button>
+    </div>`);
+  $("#receiptRetryBtn").addEventListener("click", () => renderReceiptUpload(t));
+}
+
+function renderReceiptItems(t) {
+  const p = receiptState.parsed;
+  const rows = p.items.map((it, i) => `
+    <div class="row-2" style="align-items:center;grid-template-columns:1fr auto;margin-bottom:8px">
+      <div>${esc(it.name)} <span class="helper">${money(it.price)}</span></div>
+      <div class="splitbar" data-item-idx="${i}">
+        <button data-assign="luke" class="${receiptState.assignments[i] === "luke" ? "on" : ""}">${esc(state.settings.lukeName)}</button>
+        <button data-assign="shared" class="${receiptState.assignments[i] === "shared" ? "on" : ""}">Shared</button>
+        <button data-assign="hannah" class="${receiptState.assignments[i] === "hannah" ? "on" : ""}">${esc(state.settings.partnerName)}</button>
+      </div>
+    </div>`).join("");
+
+  openModal(`
+    <h3>🧾 Assign Items</h3>
+    <div class="modal-sub">Tap each item for who ordered it — tax and tip are split proportionally to the item totals.</div>
+    <div id="receiptItemRows">${rows}</div>
+    <div class="field" style="margin-top:14px">
+      <label>${esc(state.settings.partnerName)}'s % for "Shared" items</label>
+      <input id="receiptSharedPct" type="number" min="0" max="100" value="${state.settings.defaultPct}">
+    </div>
+    <div class="helper" id="receiptPreview" style="margin:10px 0"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" id="receiptApplyBtn">Apply Split</button>
+    </div>`);
+
+  const updatePreview = () => {
+    const sPct = clamp(parseInt($("#receiptSharedPct").value) || 0, 0, 100);
+    const pct = computeReceiptSplitPercent(p.items, receiptState.assignments, p.tax, p.tip, p.total, sPct);
+    $("#receiptPreview").textContent = `${state.settings.partnerName} owes ${pct}% (${money(p.total * pct / 100)})`;
+  };
+
+  $("#receiptItemRows").addEventListener("click", e => {
+    const btn = e.target.closest("button[data-assign]"); if (!btn) return;
+    const idx = +btn.closest("[data-item-idx]").dataset.itemIdx;
+    receiptState.assignments[idx] = btn.dataset.assign;
+    renderReceiptItems(t);
+  });
+  $("#receiptSharedPct").addEventListener("input", updatePreview);
+  updatePreview();
+
+  $("#receiptApplyBtn").addEventListener("click", () => applyReceiptSplit(t));
+}
+
+function applyReceiptSplit(t) {
+  const p = receiptState.parsed;
+  const sPct = clamp(parseInt($("#receiptSharedPct").value) || 0, 0, 100);
+  const pct = computeReceiptSplitPercent(p.items, receiptState.assignments, p.tax, p.tip, p.total, sPct);
+  t.receiptItems = p.items.map((it, i) => ({ name: it.name, price: it.price, assignedTo: receiptState.assignments[i] }));
+  t.receiptTax = p.tax || 0;
+  t.receiptTip = p.tip || 0;
+  receiptState = null;
+  closeModal();
+  queueLog(t.id, pct);
+}
+
+// Weighted % owed by the partner: items assigned to them count fully, "shared"
+// items count at sharedPct, and tax/tip are apportioned by that same weight.
+function computeReceiptSplitPercent(items, assignments, tax, tip, total, sharedPct) {
+  const itemsTotal = items.reduce((s, it) => s + it.price, 0);
+  const hannahItems = items.reduce((s, it, i) => {
+    const a = assignments[i];
+    return s + (a === "hannah" ? it.price : a === "shared" ? it.price * sharedPct / 100 : 0);
+  }, 0);
+  const hannahWeight = itemsTotal > 0 ? hannahItems / itemsTotal : sharedPct / 100;
+  const hannahOwes = hannahItems + ((tax || 0) + (tip || 0)) * hannahWeight;
+  return total > 0 ? clamp(Math.round((hannahOwes / total) * 1000) / 10, 0, 100) : 0;
+}
+
+function resizeImageForUpload(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("read error"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("decode error"));
+      img.onload = () => {
+        const maxDim = 1600;
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const scale = maxDim / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 function clearCurrentStatement() {
