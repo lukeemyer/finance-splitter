@@ -208,6 +208,8 @@ button:focus:not(:focus-visible) { outline: none; }
 
 /* ---------- Tables ---------- */
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
+.table-wrap thead th { position: sticky; top: 0; background: var(--surface-2); z-index: 2; box-shadow: 0 1px 0 var(--border); }
+@keyframes rowFlash { 0%,100% { background-color: transparent; } 50% { background-color: var(--accent-soft); } }
 table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: middle; }
 th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); font-weight: 650; background: var(--surface-2); position: sticky; top: 0; }
@@ -233,6 +235,102 @@ tr.row-excluded { opacity: .68; }
 .splitbar button.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); box-shadow: var(--shadow); }
 .splitbar button.ex.on { background: var(--text-muted); border-color: var(--text-muted); color: var(--surface); }
 .compact .splitbar button { padding: 5px 9px; min-width: 34px; font-size: 12px; }
+.splitbar .custom-pct-input {
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted);
+  padding: 7px 4px; border-radius: 8px; font-size: 13px; font-weight: 650; width: 52px; text-align: center;
+  transition: border-color .12s;
+}
+.splitbar .custom-pct-input:focus { border-color: var(--accent); outline: none; color: var(--text); }
+.compact .splitbar .custom-pct-input { padding: 5px 4px; font-size: 12px; width: 46px; }
+
+/* ---------- Complete button + Amex Split badge ---------- */
+.btn.complete { background: #16a34a; color: #fff; border-color: #16a34a; font-weight: 700; }
+.btn.complete:hover { background: #15803d; border-color: #15803d; }
+.badge.amex-split { background: color-mix(in srgb, #1da1f2 18%, var(--surface)); color: #1da1f2; border: 1px solid color-mix(in srgb, #1da1f2 40%, transparent); }
+
+/* ---------- Confetti ---------- */
+@keyframes confettiFall {
+  0%   { transform: translateY(0) rotate(0deg) scaleX(1); opacity: 1; }
+  60%  { opacity: 1; }
+  100% { transform: translateY(105vh) rotate(680deg) scaleX(-1); opacity: 0; }
+}
+@keyframes confettiWiggle {
+  0%,100% { margin-left: 0; }
+  25%      { margin-left: 6px; }
+  75%      { margin-left: -6px; }
+}
+.confetti-piece {
+  position: fixed; top: -12px; pointer-events: none; z-index: 9999;
+  animation: confettiFall var(--fall-dur) var(--fall-delay) ease-in forwards,
+             confettiWiggle var(--wiggle-dur) var(--fall-delay) linear infinite;
+}
+
+/* ---------- Queue / One at a Time ---------- */
+@keyframes queueSlideUp {
+  from { transform: translateY(28px) scale(.97); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+.queue-controls { display:flex; align-items:center; gap:10px; margin-bottom:18px; flex-wrap:wrap; }
+.queue-progress-wrap { margin-bottom:22px; }
+.queue-progress-label { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:14px; }
+.queue-progress-bar { height:10px; border-radius:8px; background:var(--border); overflow:hidden; }
+.queue-progress-fill { height:100%; border-radius:8px; background:linear-gradient(90deg,var(--accent),var(--accent-strong,var(--accent))); transition:width .5s cubic-bezier(.4,0,.2,1); }
+.queue-progress-sub { display:flex; justify-content:space-between; margin-top:6px; font-size:12px; color:var(--text-muted); }
+.queue-streak { display:inline-flex; align-items:center; gap:4px; font-weight:700; color:var(--accent); font-size:15px; background:var(--accent-soft); padding:2px 10px; border-radius:20px; }
+
+.queue-card-wrap { perspective:1200px; margin-bottom:24px; }
+.queue-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+  padding: 32px 32px 24px; max-width: 560px; margin: 0 auto;
+  box-shadow: var(--shadow); position: relative; overflow: hidden;
+  animation: queueSlideUp .32s cubic-bezier(.34,1.25,.64,1);
+}
+.queue-logged {
+  position: absolute; inset: 0; background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 10; opacity: 0; pointer-events: none; transition: opacity .18s; border-radius: 20px;
+}
+.queue-logged.show { opacity: 1; }
+.queue-logged .ql-ico { font-size: 54px; margin-bottom: 6px; }
+.queue-logged .ql-txt { font-size: 24px; font-weight: 800; color: var(--accent); }
+
+.queue-merchant-row { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 6px; }
+.queue-merchant-emoji { font-size: 38px; line-height: 1; flex-shrink: 0; }
+.queue-merchant { font-size: 22px; font-weight: 750; letter-spacing: -.02em; line-height: 1.2; word-break: break-word; }
+.queue-desc { font-size: 13px; color: var(--text-muted); margin-top: 3px; word-break: break-word; }
+.queue-address { font-size: 12px; color: var(--text-faint); margin-top: 3px; word-break: break-word; }
+.queue-meta { display: flex; gap: 8px; color: var(--text-muted); font-size: 13px; margin-bottom: 18px; flex-wrap: wrap; margin-top: 6px; }
+.queue-amount { font-size: 44px; font-weight: 800; letter-spacing: -.04em; color: var(--text); margin-bottom: 22px; line-height: 1; }
+.queue-split-label { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; }
+.queue-actions { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+
+.queue-totals { display: flex; gap: 14px; max-width: 560px; margin: 0 auto 24px; }
+.queue-totals .qt-card { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; text-align: center; }
+.queue-totals .qt-name { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); margin-bottom: 6px; font-weight: 700; }
+.queue-totals .qt-amount { font-size: 22px; font-weight: 800; letter-spacing: -.03em; color: var(--accent); }
+.queue-totals .qt-count { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+.queue-done { text-align: center; max-width: 500px; margin: 48px auto; }
+.queue-done .qd-ico { font-size: 80px; margin-bottom: 14px; display: block; }
+.queue-done h3 { font-size: 30px; font-weight: 800; margin-bottom: 8px; }
+.queue-done .qd-sub { color: var(--text-muted); margin-bottom: 28px; font-size: 15px; }
+.queue-done .qd-stats { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 30px; }
+.queue-done .qd-stat { background: var(--accent-soft); padding: 14px 22px; border-radius: 14px; min-width: 120px; }
+.queue-done .qd-stat-val { font-size: 22px; font-weight: 800; color: var(--accent); }
+.queue-done .qd-stat-lbl { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.queue-empty-state { text-align: center; padding: 60px 20px; }
+
+/* ---------- Dashboard recent-tx ---------- */
+.dash-sort-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+.recent-tx-grid { display: flex; flex-direction: column; gap: 5px; }
+.recent-tx-row { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 10px; background: var(--surface-2); font-size: 14px; flex-wrap: wrap; }
+.recent-tx-row .rtx-merchant { flex: 1; font-weight: 600; min-width: 140px; }
+.recent-tx-row .rtx-date { color: var(--text-muted); min-width: 90px; font-size: 13px; }
+.recent-tx-row .rtx-amt { font-weight: 700; min-width: 70px; text-align: right; }
+.rtx-badge { font-size: 11px; padding: 2px 9px; border-radius: 6px; font-weight: 600; white-space: nowrap; }
+.rtx-badge.nr { background: color-mix(in srgb, orange 18%, var(--surface)); color: var(--warn); }
+.rtx-badge.rv { background: var(--accent-soft); color: var(--accent); }
+.rtx-badge.ex { background: var(--surface); color: var(--text-muted); border: 1px solid var(--border); }
 
 /* ---------- Toolbar / filters ---------- */
 .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
@@ -275,6 +373,7 @@ tr.row-excluded { opacity: .68; }
 .kpi-list { display: flex; gap: 20px; flex-wrap: wrap; }
 .codebox { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; font-family: ui-monospace, Menlo, monospace; font-size: 13px; white-space: pre-wrap; word-break: break-word; }
 .helper { font-size: 12.5px; color: var(--text-faint); }
+kbd { display: inline-block; padding: 1px 5px; border: 1px solid var(--border); border-radius: 4px; font-family: monospace; font-size: 11px; background: var(--surface-2); color: var(--text-muted); }
 
 /* ---------- Modal ---------- */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; place-items: center; z-index: 100; padding: 20px; }
@@ -331,7 +430,7 @@ tr.row-excluded { opacity: .68; }
 
 <!-- ======================= TOP NAVIGATION ======================= -->
 <header class="topbar">
-  <div class="brand"><span class="logo">₿</span> Finance Splitter</div>
+  <div class="brand"><span class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9.25" stroke="currentColor" stroke-width="1.8"/><text x="12" y="16.5" text-anchor="middle" font-size="12" font-weight="700" fill="currentColor" font-family="system-ui,-apple-system,sans-serif">$</text></svg></span> Finance Splitter</div>
   <span class="spacer"></span>
   <div class="theme-dots" id="themeDots" title="Theme color">
     <span class="theme-dot dot-forest" data-theme="forest"></span>
@@ -341,6 +440,7 @@ tr.row-excluded { opacity: .68; }
     <span class="theme-dot dot-slate"  data-theme="slate"></span>
     <span class="theme-dot dot-amber"  data-theme="amber"></span>
   </div>
+  <button class="icon-btn" onclick="showView('settings')" title="Settings">⚙️</button>
   <button class="icon-btn" id="modeToggle" title="Toggle dark mode">🌙</button>
 </header>
 
@@ -349,10 +449,11 @@ tr.row-excluded { opacity: .68; }
   <nav class="sidebar" id="sidebar">
     <button class="nav-item active" data-view="dashboard"><span class="ni-ico">📊</span> Dashboard</button>
     <button class="nav-item" data-view="upload"><span class="ni-ico">⬆️</span> Upload Statement</button>
+    <button class="nav-item" data-view="manual"><span class="ni-ico">✏️</span> Manual Entry</button>
     <button class="nav-item" data-view="review"><span class="ni-ico">✅</span> Review <span class="badge-count" id="navReviewCount" style="display:none">0</span></button>
+    <button class="nav-item" data-view="queue"><span class="ni-ico">🎮</span> One at a Time <span class="badge-count" id="navQueueCount" style="display:none">0</span></button>
     <button class="nav-item" data-view="past"><span class="ni-ico">🗂️</span> Past Statements</button>
     <button class="nav-item" data-view="rules"><span class="ni-ico">⚙️</span> Rules</button>
-    <button class="nav-item" data-view="settings"><span class="ni-ico">🛠️</span> Settings</button>
   </nav>
 
   <main class="content">
@@ -383,6 +484,7 @@ tr.row-excluded { opacity: .68; }
         <div class="btn-row" style="margin-top:16px">
           <button class="btn primary big" data-view="upload">⬆️ Upload statement</button>
           <button class="btn big" data-view="review">✅ Review transactions</button>
+          <button class="btn big" data-view="queue">🎮 One at a Time</button>
           <button class="btn big" id="btnLoadDemo">✨ Load demo data</button>
         </div>
       </div>
@@ -406,6 +508,29 @@ tr.row-excluded { opacity: .68; }
           </div>
         </div>
       </div>
+
+      <div class="card" style="margin-bottom:18px">
+        <div class="dash-sort-row">
+          <strong>Transactions</strong>
+          <span style="flex:1"></span>
+          <select class="input" id="dashSort" style="font-size:13px;padding:6px 10px">
+            <option value="date">Date (newest first)</option>
+            <option value="amount">Amount (largest first)</option>
+            <option value="merchant">Merchant A–Z</option>
+            <option value="status">Status</option>
+          </select>
+        </div>
+        <div id="recentTxList"></div>
+      </div>
+    </section>
+
+    <!-- ================= VIEW: ONE AT A TIME ================= -->
+    <section class="view" id="view-queue">
+      <div class="view-head">
+        <h2>🎮 One at a Time</h2>
+        <p>Review transactions one by one. No decision fatigue, just flow.</p>
+      </div>
+      <div id="queueWrap"></div>
     </section>
 
     <!-- ================= VIEW 2: UPLOAD ================= -->
@@ -428,24 +553,53 @@ tr.row-excluded { opacity: .68; }
       <div id="uploadResult" style="margin-top:20px"></div>
     </section>
 
+    <!-- ================= VIEW: MANUAL ENTRY ================= -->
+    <section class="view" id="view-manual">
+      <div class="view-head">
+        <h2>Manual Entry</h2>
+        <p>Add an expense that didn't come through your Amex statement — cash, another card, Venmo, etc.</p>
+      </div>
+
+      <div class="card" style="padding:20px;max-width:640px">
+        <div class="row-2">
+          <div class="field"><label>Date</label><input class="input" id="manDate" type="date"></div>
+          <div class="field"><label>Amount</label><input class="input" id="manAmount" type="number" step="0.01" min="0" placeholder="0.00"></div>
+        </div>
+        <div class="field"><label>Merchant / description</label><input class="input" id="manDesc" placeholder="e.g. Trader Joe's"></div>
+        <div class="field"><label>Category <span class="helper">(optional)</span></label><input class="input" id="manCategory" placeholder="e.g. Groceries"></div>
+        <div class="btn-row">
+          <button class="btn primary" id="btnAddManual">＋ Add expense</button>
+        </div>
+      </div>
+
+      <div id="manualList" style="margin-top:20px"></div>
+    </section>
+
     <!-- ================= VIEW 3: REVIEW ================= -->
     <section class="view" id="view-review">
       <div class="view-head">
         <h2>Review Transactions</h2>
-        <p>Tap a percentage to set how much <span class="p2name">Hannah</span> owes. Highlighted rows still need review.</p>
+        <p>Click or tap a percentage to set how much <span class="p2name">Hannah</span> owes. Rows with an orange left border still need review.</p>
       </div>
 
       <div class="toolbar">
         <input class="input search" id="reviewSearch" placeholder="🔍 Search merchant, description, or category" />
         <select class="input" id="reviewSort">
-          <option value="date">Sort: Date</option>
-          <option value="amount">Sort: Amount</option>
-          <option value="merchant">Sort: Merchant</option>
-          <option value="status">Sort: Review status</option>
-          <option value="owes">Sort: Hannah owes</option>
+          <option value="date">Date (newest first)</option>
+          <option value="date-asc">Date (oldest first)</option>
+          <option value="amount">Amount (largest first)</option>
+          <option value="merchant">Merchant A–Z</option>
+          <option value="status">Review status</option>
+          <option value="owes">Hannah owes (most first)</option>
         </select>
+        <button class="btn sm" id="btnStartOver" title="Reset all splits back to original import state">↺ Start Over</button>
+        <button class="btn sm danger" id="btnDeleteCurrent" title="Delete this statement's transactions entirely">🗑 Delete statement</button>
       </div>
-      <div class="chips" id="reviewFilters" style="margin-bottom:14px"></div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+        <div class="chips" id="reviewFilters" style="flex:1;margin-bottom:0"></div>
+        <span id="reviewFilterInfo" class="helper" style="white-space:nowrap;display:none"></span>
+        <button class="btn sm" id="btnFirstUnreviewed" style="white-space:nowrap;display:none">↓ First unreviewed</button>
+      </div>
 
       <div class="card no-print" id="bulkBar" style="display:none;margin-bottom:14px;padding:12px 16px">
         <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
@@ -474,7 +628,8 @@ tr.row-excluded { opacity: .68; }
         <div style="flex:1;min-width:160px">
           <div class="progress"><div id="rbBar" style="width:0%"></div></div>
         </div>
-        <button class="btn primary" id="btnApplyRules">⚡ Apply rules</button>
+        <button class="btn primary" id="btnApplyRules" title="Auto-assign splits for needs-review transactions using your rules and category defaults">⚡ Auto-assign</button>
+        <button class="btn complete" id="btnMarkComplete">🎉 Mark Complete</button>
       </div>
     </section>
 
@@ -491,11 +646,11 @@ tr.row-excluded { opacity: .68; }
     <section class="view" id="view-rules">
       <div class="view-head">
         <h2>Rules</h2>
-        <p>Auto-classify transactions on import. Lower priority numbers run first.</p>
+        <p>Every import starts as Needs Review. Press Auto-assign to classify transactions using these rules. Lower priority numbers run first.</p>
       </div>
       <div class="btn-row" style="margin-bottom:16px">
         <button class="btn primary" id="btnAddRule">＋ Add rule</button>
-        <button class="btn" id="btnApplyRulesPage">⚡ Apply to current transactions</button>
+        <button class="btn" id="btnApplyRulesPage" title="Auto-assign splits for needs-review transactions using your rules and category defaults">⚡ Auto-assign</button>
         <button class="btn ghost" id="btnResetRules">↺ Reset to defaults</button>
       </div>
       <div id="rulesList"></div>
@@ -587,6 +742,11 @@ tr.row-excluded { opacity: .68; }
           <button class="btn sm danger" id="fsSyncClearBtn">Clear token</button>
         </div>
         <p id="fsSyncLast" class="sync-last">Not yet synced</p>
+        <div class="section-title" style="font-size:13px">Share with a device that doesn't have sync set up</div>
+        <p class="helper" style="margin-bottom:10px">Generates a link that carries your sync token. Whoever opens it gets paired automatically and sees the latest shared data — no manual setup on their end. Anyone with this link can read and change the shared data, so only send it to Hannah.</p>
+        <div class="sync-actions">
+          <button class="btn sm primary" id="fsSyncShareBtn">🔗 Copy shareable link</button>
+        </div>
       </div>
     </section>
 
@@ -668,6 +828,12 @@ let activeFilter = "all";
 let searchTerm = "";
 let sortBy = "date";
 const selectedRows = new Set();
+let queueSortBy = "date";
+let queueIdx = 0;
+let queueStreak = 0;
+let queueAnimating = false;
+let lastQueueAction = null; // { id, prev: {status, splitType, hannahPercent, kind}, streakBefore } — for Undo
+let dashSortBy = "date";
 
 /* =========================================================================
    UTILITIES
@@ -758,7 +924,10 @@ function detectColumns(headers) {
     cardMember: find("card member", "cardmember"),
     accountNumber: find("account #", "account number", "account"),
     extended: find("extended details"),
-    appearsAs: find("appears on your statement as")
+    appearsAs: find("appears on your statement as"),
+    address: find("address"),
+    cityState: find("city/state", "city / state", "city state"),
+    zipCode: find("zip code", "zip")
   };
 }
 
@@ -829,11 +998,13 @@ function normalizeRow(row, mapping, fileName) {
   const description = get(mapping.description) || get(mapping.extended) || "Unknown";
   // Prefer the cleaner "Appears On Your Statement As" field for the display name.
   const appearsAs = get(mapping.appearsAs);
+  const address = [get(mapping.address), get(mapping.cityState), get(mapping.zipCode)].filter(Boolean).join(", ");
   const t = {
     id: uid(),
     date: parseDate(get(mapping.date)),
     description,
     merchantName: cleanMerchantName(appearsAs || description),
+    address,
     amount: parseMoney(get(mapping.amount)),
     category: get(mapping.category),
     cardMember: get(mapping.cardMember),
@@ -849,7 +1020,8 @@ function normalizeRow(row, mapping, fileName) {
     suggestedPercent: null,
     suggestedType: null,
     splitType: "needs-review",
-    notes: ""
+    notes: "",
+    amexSplit: false
   };
   t.transactionHash = createTransactionHash(t);
   return t;
@@ -900,8 +1072,59 @@ function applySplitType(t, type, customPct) {
   }
 }
 
-// classifyTransaction: full pipeline applied at import time.
+function detectAmexSplitCredits(txns, extendedIdx) {
+  const splitCredits = txns.filter(t => /^Amex Split Credit:/i.test(t.description));
+  if (!splitCredits.length) return;
+  for (const credit of splitCredits) {
+    const ext = extendedIdx >= 0 && credit.rawRow ? String(credit.rawRow[extendedIdx] || "") : "";
+    const extLines = ext.split(/\n/).map(s => s.trim()).filter(Boolean);
+    const origMerchant = extLines.find(l =>
+      l.length > 3 &&
+      !/^Amex Split Credit/i.test(l) &&
+      !/^\(?\+?\d[\d\s\-()+]+$/.test(l)
+    );
+    if (!origMerchant) continue;
+    const needle = origMerchant.toLowerCase();
+    const match = txns.find(t =>
+      !t.amexSplit &&
+      t.amount > 0 &&
+      !/^Amex Split Credit:/i.test(t.description) &&
+      (t.description.toLowerCase().includes(needle) || t.merchantName.toLowerCase().includes(needle))
+    );
+    if (match) match.amexSplit = true;
+  }
+}
+
+// classifyOnIntake: runs automatically on import. Only identifies duplicates and
+// transaction kind (payment/credit/refund/expense) — never assigns a split or
+// marks anything reviewed. Everything lands in "needs-review" until the user
+// reviews it manually or presses "Auto-assign" (applyRulesToCurrent).
+function classifyOnIntake(t) {
+  if (t.amexSplit) {
+    t.kind = "expense";
+    return t;
+  }
+  if (state.processedHashes[t.transactionHash]) {
+    t.status = "processed"; t.splitType = "processed"; return t;
+  }
+  let kind = "expense";
+  if (NONEXPENSE_RX.payment.test(t.description)) kind = "payment";
+  else if (NONEXPENSE_RX.refund.test(t.description)) kind = "refund";
+  else if (NONEXPENSE_RX.credit.test(t.description)) kind = "credit";
+  else if (t.amount < 0) kind = "credit"; // negative = money back
+  t.kind = kind;
+  return t;
+}
+
+// classifyTransaction: "sound logic" auto-assignment, only run when the user presses Auto-assign.
 function classifyTransaction(t, rules, settings) {
+  // 0. Amex Split Credit match — already handled via Venmo split
+  if (t.amexSplit) {
+    t.status = "reviewed";
+    t.splitType = "amex-split";
+    t.kind = "expense";
+    return t;
+  }
   // 1. Already processed in a past statement?
   if (state.processedHashes[t.transactionHash]) {
     t.status = "processed"; t.splitType = "processed"; return t;
@@ -1017,7 +1240,9 @@ function showView(name) {
   $$(".nav-item").forEach(n => n.classList.toggle("active", n.dataset.view === name));
   window.scrollTo({ top: 0, behavior: "smooth" });
   if (name === "dashboard") renderDashboard();
+  if (name === "queue") { queueIdx = 0; queueStreak = 0; lastQueueAction = null; renderQueue(); }
   if (name === "review") renderReview();
+  if (name === "manual") renderManualEntry();
   if (name === "past") renderPast();
   if (name === "rules") renderRules();
   if (name === "settings") renderSettings();
@@ -1065,6 +1290,7 @@ function renderDashboard() {
   $("#dashPeriodText").textContent = range;
 
   updateNavBadge();
+  renderDashRecentTx();
 }
 
 function venmoMessage() {
@@ -1079,6 +1305,8 @@ function updateNavBadge() {
   const b = $("#navReviewCount");
   if (t.needReview > 0) { b.style.display = ""; b.textContent = t.needReview; }
   else b.style.display = "none";
+  const qb = $("#navQueueCount");
+  if (qb) { if (t.needReview > 0) { qb.style.display = ""; qb.textContent = t.needReview; } else qb.style.display = "none"; }
 }
 
 /* =========================================================================
@@ -1121,6 +1349,7 @@ function visibleTransactions() {
       case "merchant": return a.merchantName.localeCompare(b.merchantName);
       case "status": return a.status.localeCompare(b.status);
       case "owes": return calculateTransactionSplit(b).hannahOwes - calculateTransactionSplit(a).hannahOwes;
+      case "date-asc": return (a.date || "").localeCompare(b.date || "");
       default: return (b.date || "").localeCompare(a.date || "");
     }
   });
@@ -1129,6 +1358,7 @@ function visibleTransactions() {
 
 function statusBadge(t) {
   if (t.status === "processed") return `<span class="badge processed">Already processed</span>`;
+  if (t.amexSplit) return `<span class="badge amex-split">✓ Venmo Split</span>`;
   if (t.kind !== "expense") return `<span class="badge nonexpense">${esc(t.kind)}</span>`;
   if (t.status === "excluded") return `<span class="badge excluded">Excluded</span>`;
   if (t.status === "reviewed") {
@@ -1176,13 +1406,15 @@ function renderReview() {
       : t.status === "needs-review" ? "row-review" : "";
     const isEx = t.status === "excluded";
     const on = (p) => t.status === "reviewed" && t.hannahPercent === p ? "on" : "";
+    const stdPcts = [0, 25, 50, 75, 100];
+    const customVal = (t.status === "reviewed" && !stdPcts.includes(t.hannahPercent)) ? t.hannahPercent : "";
     const splitButtons = `<div class="splitbar" data-id="${t.id}">
         <button data-pct="0" class="${on(0)}">0%</button>
         <button data-pct="25" class="${on(25)}">25%</button>
         <button data-pct="50" class="${on(50)}">50%</button>
         <button data-pct="75" class="${on(75)}">75%</button>
         <button data-pct="100" class="${on(100)}">100%</button>
-        <button data-act="custom" title="Custom amount/percent">✎</button>
+        <input class="custom-pct-input" type="number" min="0" max="100" data-id="${t.id}" value="${customVal}" placeholder="%" title="Custom %">
         <button data-act="exclude" class="ex ${isEx ? "on" : ""}" title="Exclude">✕</button>
       </div>`;
     html += `<tr class="${rowClass}" data-row="${t.id}">
@@ -1192,8 +1424,8 @@ function renderReview() {
       <td><span class="helper">${esc(t.category || "—")}</span></td>
       <td class="num">${money(Math.abs(t.amount))}</td>
       <td>${t.status === "processed" ? '<span class="helper">—</span>' : splitButtons}</td>
-      <td class="num"><strong>${sp.included ? money(sp.hannahOwes) : "—"}</strong></td>
-      <td>${statusBadge(t)}</td>
+      <td data-cell="owes" class="num"><strong>${sp.included ? money(sp.hannahOwes) : "—"}</strong></td>
+      <td data-cell="status">${statusBadge(t)}</td>
       ${showNotes ? `<td><input class="input noteInput" data-id="${t.id}" value="${esc(t.notes)}" placeholder="add note…" style="min-width:120px;padding:5px 8px"></td>` : ""}
     </tr>`;
   }
@@ -1203,6 +1435,21 @@ function renderReview() {
 
   updateReviewBar();
   updateBulkBar();
+  updateReviewFilterInfo();
+}
+
+function updateReviewFilterInfo() {
+  const all = state.transactions.length;
+  const visible = visibleTransactions().length;
+  const info = $("#reviewFilterInfo");
+  const btn = $("#btnFirstUnreviewed");
+  if (!info || !btn) return;
+  if (activeFilter !== "all" || searchTerm) {
+    info.textContent = `Showing ${visible} of ${all}`;
+    info.style.display = "";
+  } else { info.style.display = "none"; }
+  const hasUnreviewed = state.transactions.some(t => t.kind === "expense" && t.status === "needs-review");
+  btn.style.display = hasUnreviewed ? "" : "none";
 }
 
 function updateReviewBar() {
@@ -1224,17 +1471,41 @@ function emptyState(ico, title, sub, actions) {
     <p>${esc(sub)}</p><div class="btn-row" style="justify-content:center;margin-top:14px">${actions}</div></div>`;
 }
 
-// Apply a percentage to a transaction (marks reviewed) and refresh UI.
+// Apply a percentage to a transaction. Updates the row in-place when possible to avoid full re-render flicker.
 function setSplit(id, pct) {
-  const t = state.transactions.find(x => x.id === id);
-  if (!t) return;
+  const t = state.transactions.find(x => x.id === id); if (!t) return;
   t.hannahPercent = pct;
   t.status = "reviewed";
   t.splitType = pct === 50 ? "shared" : pct === 0 ? "luke" : pct === 100 ? "hannah" : "custom";
-  if (t.kind !== "expense") t.kind = "expense"; // user override: treat as expense
+  if (t.kind !== "expense") t.kind = "expense";
   saveToLocalStorage();
-  renderReview();
   updateNavBadge();
+  const row = document.querySelector(`tr[data-row="${id}"]`);
+  if (row && rowMatchesFilter(t)) {
+    // In-place update: update buttons, row class, owes, status badge
+    row.className = "";
+    const sb = row.querySelector(".splitbar");
+    if (sb) {
+      sb.querySelectorAll("button[data-pct]").forEach(btn => { btn.className = (pct === +btn.dataset.pct) ? "on" : ""; });
+      const ci = sb.querySelector(".custom-pct-input");
+      if (ci) ci.value = [0,25,50,75,100].includes(pct) ? "" : pct;
+    }
+    const owesTd = row.querySelector("[data-cell=owes]");
+    if (owesTd) { const sp = calculateTransactionSplit(t); owesTd.innerHTML = `<strong>${sp.included ? money(sp.hannahOwes) : "—"}</strong>`; }
+    const statusTd = row.querySelector("[data-cell=status]");
+    if (statusTd) statusTd.innerHTML = statusBadge(t);
+    row.style.animation = "none"; row.offsetHeight; // reflow
+    row.style.animation = "rowFlash .45s ease";
+    updateReviewBar();
+    updateReviewFilterInfo();
+  } else if (row) {
+    // Row will disappear from current filter view — animate out then re-render
+    row.style.transition = "opacity .2s, transform .2s";
+    row.style.opacity = "0"; row.style.transform = "translateX(-12px)";
+    setTimeout(() => renderReview(), 220);
+  } else {
+    renderReview();
+  }
 }
 function excludeTx(id) {
   const t = state.transactions.find(x => x.id === id);
@@ -1378,7 +1649,7 @@ function renderSettings() {
    IMPORT FLOW
    ========================================================================= */
 function handleCsvText(text, fileName) {
-  const rows = parseCsv(text);
+  const rows = parseCsv(text.replace(/^﻿/, ""));
   if (rows.length < 2) { toast("Empty file", "No data rows found.", "err"); return; }
   const headers = rows[0];
   const mapping = detectColumns(headers);
@@ -1406,7 +1677,8 @@ function showColumnMapping(headers, rows, fileName, mapping) {
     const m = {
       date: +$("#mapDate").value, description: +$("#mapDesc").value, amount: +$("#mapAmt").value,
       category: +$("#mapCat").value, reference: +$("#mapRef").value, cardMember: +$("#mapCard").value,
-      accountNumber: mapping.accountNumber, extended: mapping.extended
+      accountNumber: mapping.accountNumber, extended: mapping.extended, appearsAs: mapping.appearsAs,
+      address: mapping.address, cityState: mapping.cityState, zipCode: mapping.zipCode
     };
     if (m.date === -1 || m.amount === -1 || m.description === -1) { toast("Missing columns", "Date, description and amount are required.", "err"); return; }
     closeModal();
@@ -1416,13 +1688,14 @@ function showColumnMapping(headers, rows, fileName, mapping) {
 
 function buildPendingImport(dataRows, mapping, fileName) {
   const txns = dataRows.map(r => normalizeRow(r, mapping, fileName)).filter(t => t.date && !isNaN(t.amount));
+  detectAmexSplitCredits(txns, mapping.extended != null ? mapping.extended : -1);
   // detect duplicates within file and against current working set + processed
   const seen = new Set();
   const currentHashes = new Set(state.transactions.map(t => t.transactionHash));
   let dupInFile = 0, alreadyCurrent = 0, alreadyProcessed = 0, nonExpense = 0;
   const kept = [];
   for (const t of txns) {
-    classifyTransaction(t, state.rules, state.settings);
+    classifyOnIntake(t);
     if (t.status === "processed") alreadyProcessed++;
     if (t.kind !== "expense") nonExpense++;
     if (seen.has(t.transactionHash)) { dupInFile++; continue; }
@@ -1489,6 +1762,66 @@ function confirmImport() {
 }
 
 /* =========================================================================
+   MANUAL ENTRY
+   ========================================================================= */
+function renderManualEntry() {
+  if (!$("#manDate").value) $("#manDate").value = new Date().toISOString().slice(0, 10);
+  const rows = state.transactions.filter(t => t.manual && t.status !== "processed")
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const list = $("#manualList");
+  if (!rows.length) { list.innerHTML = ""; return; }
+  list.innerHTML = `
+    <h3 style="font-size:14px;color:var(--text-muted);margin-bottom:8px">Manually added this statement</h3>
+    <div class="table-wrap"><table><tbody>
+      ${rows.map(t => `
+        <tr data-manual-row="${t.id}">
+          <td>${fmtDate(t.date)}</td>
+          <td>${esc(t.merchantName)}</td>
+          <td class="num">${money(t.amount)}</td>
+          <td>${statusBadge(t)}</td>
+          <td><button class="btn sm danger" data-manual-del="${t.id}" title="Delete">🗑️</button></td>
+        </tr>`).join("")}
+    </tbody></table></div>`;
+}
+
+function addManualEntry() {
+  const date = $("#manDate").value;
+  const desc = $("#manDesc").value.trim();
+  const amount = parseFloat($("#manAmount").value);
+  const category = $("#manCategory").value.trim();
+  if (!date) { toast("Missing date", "Pick a date for this expense.", "err"); return; }
+  if (!desc) { toast("Missing description", "Give this expense a merchant or description.", "err"); return; }
+  if (isNaN(amount) || amount <= 0) { toast("Invalid amount", "Enter an amount greater than 0.", "err"); return; }
+
+  const t = {
+    id: uid(), date, description: desc, merchantName: desc,
+    amount, category, cardMember: "", accountNumber: "", reference: "",
+    rawRow: null, sourceFileName: "Manual Entry", importedAt: new Date().toISOString(),
+    statementId: null, status: "needs-review", kind: "expense",
+    hannahPercent: 0, suggestedPercent: null, suggestedType: null,
+    splitType: "needs-review", notes: "", amexSplit: false, manual: true
+  };
+  t.transactionHash = createTransactionHash(t);
+  classifyOnIntake(t);
+
+  state.transactions.push(t);
+  const dates = state.transactions.map(x => x.date).filter(Boolean).sort();
+  if (!state.currentStatement.periodStart && dates.length) {
+    state.currentStatement.periodStart = dates[0];
+    state.currentStatement.periodEnd = dates[dates.length - 1];
+  }
+  saveToLocalStorage();
+  $("#manDesc").value = ""; $("#manAmount").value = ""; $("#manCategory").value = "";
+  renderManualEntry(); updateNavBadge();
+  toast("Added", `${t.merchantName} — ${money(t.amount)} needs review.`);
+}
+
+function deleteManualEntry(id) {
+  state.transactions = state.transactions.filter(t => t.id !== id);
+  saveToLocalStorage(); renderManualEntry(); updateNavBadge();
+}
+
+/* =========================================================================
    MARK STATEMENT PROCESSED
    ========================================================================= */
 function markStatementProcessed() {
@@ -1534,6 +1867,7 @@ function doMarkProcessed() {
   state.currentStatement = { name: "", periodStart: "", periodEnd: "" };
   saveToLocalStorage();
   toast("Statement processed", `${stmt.name} saved to history.`, "ok");
+  launchConfetti();
   showView("past");
 }
 
@@ -1647,6 +1981,319 @@ function loadDemoData() {
 }
 
 /* =========================================================================
+   RENDER: DASHBOARD RECENT TRANSACTIONS
+   ========================================================================= */
+function renderDashRecentTx() {
+  const el = $("#recentTxList"); if (!el) return;
+  let rows = state.transactions.filter(t => t.kind === "expense");
+  switch (dashSortBy) {
+    case "amount":   rows.sort((a,b) => Math.abs(b.amount) - Math.abs(a.amount)); break;
+    case "merchant": rows.sort((a,b) => a.merchantName.localeCompare(b.merchantName)); break;
+    case "status":   rows.sort((a,b) => a.status.localeCompare(b.status)); break;
+    default:         rows.sort((a,b) => (b.date||"").localeCompare(a.date||"")); break;
+  }
+  rows = rows.slice(0, 25);
+  if (rows.length === 0) { el.innerHTML = `<p class="helper" style="text-align:center;padding:16px 0">No transactions yet — upload a statement to get started.</p>`; return; }
+  const badge = t => {
+    if (t.status === "needs-review") return `<span class="rtx-badge nr">Needs review</span>`;
+    if (t.status === "excluded")     return `<span class="rtx-badge ex">Excluded</span>`;
+    if (t.status === "processed")    return `<span class="rtx-badge ex">Processed</span>`;
+    return `<span class="rtx-badge rv">${t.hannahPercent}% ${esc(state.settings.partnerName)}</span>`;
+  };
+  el.innerHTML = `<div class="recent-tx-grid">${rows.map(t => `
+    <div class="recent-tx-row">
+      <span class="rtx-merchant">${esc(t.merchantName)}</span>
+      <span class="rtx-date">${fmtDate(t.date)}</span>
+      <span class="rtx-amt">${money(Math.abs(t.amount))}</span>
+      ${badge(t)}
+    </div>`).join("")}</div>`;
+}
+
+/* =========================================================================
+   QUEUE: ONE AT A TIME
+   ========================================================================= */
+function getMerchantEmoji(name, cat) {
+  const s = (name + " " + (cat||"")).toLowerCase();
+  if (/trader joe|whole food|grocery|safeway|kroger|publix|aldi|sprout|market/.test(s)) return "🛒";
+  if (/amazon/.test(s)) return "📦";
+  if (/target/.test(s)) return "🎯";
+  if (/costco/.test(s)) return "🏪";
+  if (/walmart|sam's club/.test(s)) return "🏬";
+  if (/spotify|apple music|pandora/.test(s)) return "🎵";
+  if (/netflix|hulu|disney|hbo|youtube/.test(s)) return "📺";
+  if (/uber|lyft|parking|transit|metro/.test(s)) return "🚕";
+  if (/airline|airport|delta |united |southwest|jetblue|spirit|frontier/.test(s)) return "✈️";
+  if (/hotel|marriott|hilton|hyatt|airbnb|motel|resort/.test(s)) return "🏨";
+  if (/shell |chevron|bp |exxon|mobil |gas station|sunoco|arco/.test(s)) return "⛽";
+  if (/cvs|walgreen|rite aid|pharmacy|drug store/.test(s)) return "💊";
+  if (/gym|planet fitness|equinox|crossfit|anytime fitness/.test(s)) return "💪";
+  if (/apple store|best buy|microsoft|samsung/.test(s)) return "💻";
+  if (/home depot|lowe's|lowes|hardware/.test(s)) return "🔧";
+  if (/starbucks|coffee|cafe|espresso/.test(s)) return "☕";
+  if (/restaurant|diner|pizza|burger|taco|sushi|chipotle|mcdonald|jersey mike|subway/.test(s)) return "🍽️";
+  return "💳";
+}
+
+function buildQueueList() {
+  let rows = state.transactions.filter(t => t.kind === "expense" && t.status === "needs-review");
+  switch (queueSortBy) {
+    case "amount":     rows.sort((a,b) => Math.abs(b.amount) - Math.abs(a.amount)); break;
+    case "amount-asc": rows.sort((a,b) => Math.abs(a.amount) - Math.abs(b.amount)); break;
+    case "merchant":   rows.sort((a,b) => a.merchantName.localeCompare(b.merchantName)); break;
+    case "date-asc":   rows.sort((a,b) => (a.date||"").localeCompare(b.date||"")); break;
+    default:           rows.sort((a,b) => (b.date||"").localeCompare(a.date||"")); break;
+  }
+  return rows;
+}
+
+function renderQueue() {
+  const wrap = $("#queueWrap"); if (!wrap) return;
+  const queue = buildQueueList();
+  const totals = calculateDashboardTotals();
+  const pct = totals.reviewableTotal ? Math.round(totals.reviewed / totals.reviewableTotal * 100) : 0;
+
+  if (totals.reviewableTotal === 0) {
+    wrap.innerHTML = `<div class="queue-empty-state">${emptyState("🎮","No transactions loaded","Upload an Amex statement to start reviewing.",`<button class="btn primary" onclick="showView('upload')">⬆️ Upload statement</button>`)}</div>`;
+    return;
+  }
+
+  if (queue.length === 0) {
+    wrap.innerHTML = `
+      <div class="queue-done">
+        <span class="qd-ico">🎉</span>
+        <h3>All caught up!</h3>
+        <p class="qd-sub">Every transaction has been reviewed. Time to send that Venmo request.</p>
+        <div class="qd-stats">
+          <div class="qd-stat"><div class="qd-stat-val">${totals.reviewed}</div><div class="qd-stat-lbl">Reviewed</div></div>
+          <div class="qd-stat"><div class="qd-stat-val">${money(totals.hannahOwes)}</div><div class="qd-stat-lbl">${esc(state.settings.partnerName)} owes</div></div>
+          <div class="qd-stat"><div class="qd-stat-val">${money(totals.lukePortion)}</div><div class="qd-stat-lbl">${esc(state.settings.lukeName)}'s share</div></div>
+        </div>
+        <div class="btn-row" style="justify-content:center">
+          <button class="btn primary big" onclick="showView('dashboard')">📊 Go to Dashboard</button>
+          <button class="btn big" onclick="showView('review')">✅ Full Review</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  queueIdx = Math.max(0, Math.min(queueIdx, queue.length - 1));
+  const t = queue[queueIdx];
+  const amt = Math.abs(t.amount);
+  const emoji = getMerchantEmoji(t.merchantName, t.category);
+  const stdPcts = [0, 25, 50, 75, 100];
+  const on = p => (t.status === "reviewed" && t.hannahPercent === p) ? "on" : "";
+  const customVal = (t.status === "reviewed" && !stdPcts.includes(t.hannahPercent)) ? t.hannahPercent : "";
+
+  wrap.innerHTML = `
+    <div class="queue-controls">
+      <select class="input" id="queueSort" style="font-size:13px;padding:6px 10px">
+        <option value="date"       ${queueSortBy==="date"?"selected":""}>Date (newest first)</option>
+        <option value="date-asc"   ${queueSortBy==="date-asc"?"selected":""}>Date (oldest first)</option>
+        <option value="amount"     ${queueSortBy==="amount"?"selected":""}>Amount (largest first)</option>
+        <option value="amount-asc" ${queueSortBy==="amount-asc"?"selected":""}>Amount (smallest first)</option>
+        <option value="merchant"   ${queueSortBy==="merchant"?"selected":""}>Merchant A–Z</option>
+      </select>
+      ${queueStreak > 1 ? `<span class="queue-streak">🔥 ${queueStreak} streak</span>` : ""}
+      <span style="flex:1"></span>
+      ${lastQueueAction ? `<button class="btn sm" id="queueUndoBtn" style="font-size:13px" title="Undo the last entry">↩️ Undo</button>` : ""}
+      <button class="btn sm" id="queueStartOver" style="font-size:13px" title="Reset all splits back to original import state">↺ Start Over</button>
+      ${queue.length > 1 ? `<button class="btn" id="queueMarkRest" style="font-size:13px">⚡ Settle remaining ${queue.length - queueIdx - 1 > 0 ? `(${queue.length - queueIdx - 1})` : ""}</button>` : ""}
+    </div>
+
+    <div class="queue-progress-wrap">
+      <div class="queue-progress-label">
+        <span><strong>${totals.reviewed}</strong> of <strong>${totals.reviewableTotal}</strong> reviewed</span>
+        <span>${pct}%</span>
+      </div>
+      <div class="queue-progress-bar"><div class="queue-progress-fill" style="width:${pct}%"></div></div>
+      <div class="queue-progress-sub">
+        <span>${queue.length} remaining</span>
+        <span>card ${queueIdx + 1} of ${queue.length}</span>
+      </div>
+    </div>
+
+    <div class="queue-card-wrap">
+      <div class="queue-card" id="queueCard">
+        <div class="queue-logged" id="queueLogged">
+          <div class="ql-ico">✅</div>
+          <div class="ql-txt">Logged!</div>
+        </div>
+        <div class="queue-merchant-row">
+          <span class="queue-merchant-emoji">${emoji}</span>
+          <div>
+            <div class="queue-merchant">${esc(t.merchantName)}</div>
+            ${t.description && t.description !== t.merchantName ? `<div class="queue-desc">${esc(t.description)}</div>` : ""}
+            ${t.address ? `<div class="queue-address">📍 ${esc(t.address)}</div>` : ""}
+            <div class="queue-meta">
+              <span>${fmtDate(t.date)}</span>
+              ${t.category ? `<span>·</span><span>${esc(t.category)}</span>` : ""}
+            </div>
+          </div>
+        </div>
+        <div class="queue-amount">${money(amt)}</div>
+        <div class="queue-split-label">${esc(state.settings.partnerName)}'s share</div>
+        <div class="splitbar" data-id="${t.id}" id="queueSplitBar">
+          <button data-pct="0"   class="${on(0)}">0%</button>
+          <button data-pct="25"  class="${on(25)}">25%</button>
+          <button data-pct="50"  class="${on(50)}">50%</button>
+          <button data-pct="75"  class="${on(75)}">75%</button>
+          <button data-pct="100" class="${on(100)}">100%</button>
+          <input class="custom-pct-input" type="number" min="0" max="100" data-id="${t.id}" value="${customVal}" placeholder="%" title="Custom %">
+        </div>
+        <div class="queue-actions">
+          <button class="btn" id="queueSkipBtn">↩ Skip for now</button>
+          <button class="btn" id="queueExcludeBtn">✕ Exclude</button>
+        </div>
+        <div class="helper" style="text-align:center;margin-top:14px;font-size:12px">
+          Keyboard: <kbd>1</kbd>–<kbd>5</kbd> for splits · <kbd>→</kbd> skip · <kbd>←</kbd> back · <kbd>E</kbd> exclude
+        </div>
+      </div>
+    </div>
+
+    <div class="queue-totals">
+      <div class="qt-card">
+        <div class="qt-name">${esc(state.settings.lukeName)}'s portion</div>
+        <div class="qt-amount">${money(totals.lukePortion)}</div>
+        <div class="qt-count">${totals.reviewed} charge${totals.reviewed !== 1 ? "s" : ""} reviewed</div>
+      </div>
+      <div class="qt-card">
+        <div class="qt-name">${esc(state.settings.partnerName)} owes</div>
+        <div class="qt-amount">${money(totals.hannahOwes)}</div>
+        <div class="qt-count">${totals.reviewed} charge${totals.reviewed !== 1 ? "s" : ""} reviewed</div>
+      </div>
+    </div>`;
+
+  // Wire split buttons
+  const sb = $("#queueSplitBar");
+  if (sb) sb.addEventListener("click", e => {
+    const btn = e.target.closest("button[data-pct]"); if (!btn) return;
+    queueLog(sb.dataset.id, +btn.dataset.pct);
+  });
+
+  // Wire custom pct input
+  const ci = wrap.querySelector(".custom-pct-input");
+  if (ci) {
+    ci.addEventListener("change", e => { const p = clamp(parseInt(e.target.value)||0,0,100); queueLog(e.target.dataset.id, p); });
+    ci.addEventListener("keydown", e => { if (e.key !== "Enter") return; const p = clamp(parseInt(e.target.value)||0,0,100); queueLog(e.target.dataset.id, p); e.target.blur(); });
+  }
+
+  // Other actions
+  const skipBtn = $("#queueSkipBtn"); if (skipBtn) skipBtn.addEventListener("click", queueSkip);
+  const exBtn   = $("#queueExcludeBtn"); if (exBtn) exBtn.addEventListener("click", () => queueExcludeItem(t.id));
+  const mrBtn   = $("#queueMarkRest"); if (mrBtn) mrBtn.addEventListener("click", queueMarkRest);
+  const sortSel = $("#queueSort"); if (sortSel) sortSel.addEventListener("change", e => { queueSortBy = e.target.value; queueIdx = 0; queueStreak = 0; lastQueueAction = null; renderQueue(); });
+  const qsoBtn = $("#queueStartOver"); if (qsoBtn) qsoBtn.addEventListener("click", startOver);
+  const undoBtn = $("#queueUndoBtn"); if (undoBtn) undoBtn.addEventListener("click", queueUndo);
+}
+
+function snapshotForUndo(t) {
+  lastQueueAction = {
+    id: t.id,
+    prev: { status: t.status, splitType: t.splitType, hannahPercent: t.hannahPercent, kind: t.kind },
+    streakBefore: queueStreak
+  };
+}
+
+function queueUndo() {
+  if (!lastQueueAction) { toast("Nothing to undo", "No recent entry to undo."); return; }
+  const t = state.transactions.find(x => x.id === lastQueueAction.id);
+  if (!t) { toast("Can't undo", "That transaction no longer exists."); lastQueueAction = null; return; }
+  Object.assign(t, lastQueueAction.prev);
+  queueStreak = lastQueueAction.streakBefore;
+  lastQueueAction = null;
+  saveToLocalStorage(); updateNavBadge(); renderQueue();
+  toast("Undone", `${t.merchantName} moved back to Needs Review.`);
+}
+
+function queueLog(id, pct) {
+  if (queueAnimating) return;
+  queueAnimating = true;
+  const overlay = $("#queueLogged");
+  if (overlay) overlay.classList.add("show");
+  setTimeout(() => {
+    const t = state.transactions.find(x => x.id === id);
+    if (t) {
+      snapshotForUndo(t);
+      setSplitSilent(t, pct);
+      if (t.kind !== "expense") t.kind = "expense";
+      saveToLocalStorage();
+      updateNavBadge();
+    }
+    queueStreak++;
+    queueAnimating = false;
+    renderQueue();
+  }, 480);
+}
+
+function queueSkip() {
+  const queue = buildQueueList();
+  if (queue.length === 0) return;
+  queueIdx = (queueIdx + 1) % queue.length;
+  queueStreak = 0;
+  renderQueue();
+}
+
+function queueExcludeItem(id) {
+  const t = state.transactions.find(x => x.id === id); if (!t) return;
+  snapshotForUndo(t);
+  t.status = "excluded"; t.splitType = "exclude";
+  saveToLocalStorage(); updateNavBadge(); renderQueue();
+}
+
+function queueMarkRest() {
+  const queue = buildQueueList();
+  const remaining = queue.slice(queueIdx + 1);
+  if (remaining.length === 0) { toast("Nothing remaining", "This is the last transaction in the queue."); return; }
+  if (!confirm(`Mark the ${remaining.length} remaining transaction(s) as settled/excluded?`)) return;
+  remaining.forEach(t => { t.status = "excluded"; t.splitType = "exclude"; });
+  saveToLocalStorage(); updateNavBadge(); queueIdx = 0; lastQueueAction = null; renderQueue();
+}
+
+function clearCurrentStatement() {
+  const count = state.transactions.length;
+  const label = state.currentStatement.name ? `"${state.currentStatement.name}"` : "the current statement";
+  if (count === 0) { toast("Nothing to delete", "There's no statement currently being reviewed."); return; }
+  if (!confirm(`Delete ${label}? Its ${count} transaction(s) will be removed. Past statements are kept.`)) return;
+  state.transactions = [];
+  state.currentStatement = { name: "", periodStart: "", periodEnd: "" };
+  saveToLocalStorage(); refreshAll(); toast("Deleted", "Current statement removed.", "warn");
+}
+
+function startOver() {
+  if (!confirm("Reset all transactions back to their original import state? Manual splits will be lost.")) return;
+  let count = 0;
+  for (const t of state.transactions) {
+    if (t.status === "processed") continue;
+    t.status = "needs-review";
+    t.hannahPercent = 0;
+    t.splitType = "needs-review";
+    classifyOnIntake(t);
+    count++;
+  }
+  queueIdx = 0; queueStreak = 0; lastQueueAction = null;
+  saveToLocalStorage(); renderReview(); renderQueue(); updateNavBadge();
+  toast("Start Over", `${count} transaction${count !== 1 ? "s" : ""} reset.`);
+}
+
+function launchConfetti() {
+  const colors = ["var(--accent)", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6", "#ec4899", "#1da1f2"];
+  const container = document.createElement("div");
+  container.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden";
+  document.body.appendChild(container);
+  for (let i = 0; i < 90; i++) {
+    const p = document.createElement("div");
+    p.className = "confetti-piece";
+    const size = 6 + Math.random() * 9;
+    p.style.cssText = `left:${Math.random()*100}vw;width:${size}px;height:${size*0.55}px;` +
+      `background:${colors[Math.floor(Math.random()*colors.length)]};border-radius:2px;` +
+      `--fall-dur:${2+Math.random()*1.5}s;--fall-delay:${Math.random()*0.9}s;` +
+      `--wiggle-dur:${0.4+Math.random()*0.4}s;transform:rotate(${Math.random()*360}deg)`;
+    container.appendChild(p);
+  }
+  setTimeout(() => container.remove(), 4500);
+}
+
+/* =========================================================================
    EVENT WIRING
    ========================================================================= */
 function wireEvents() {
@@ -1654,14 +2301,28 @@ function wireEvents() {
   $("#modeToggle").addEventListener("click", () => { state.settings.dark = !state.settings.dark; applyTheme(); saveToLocalStorage(); });
   $("#themeDots").addEventListener("click", e => { const d = e.target.closest(".theme-dot"); if (!d) return; state.settings.theme = d.dataset.theme; applyTheme(); saveToLocalStorage(); });
 
+  // Dashboard sort
+  $("#dashSort").addEventListener("change", e => { dashSortBy = e.target.value; renderDashRecentTx(); });
+
   // Dashboard buttons
   $("#btnLoadDemo").addEventListener("click", loadDemoData);
   $("#btnCopyVenmo").addEventListener("click", () => copyToClipboard(venmoMessage(), "Venmo message in clipboard."));
   $("#btnMarkProcessed").addEventListener("click", markStatementProcessed);
   $("#btnExportCsv").addEventListener("click", exportSummaryCsv);
   $("#btnExportReport").addEventListener("click", printableReport);
-  $("#periodStart").addEventListener("change", e => { state.currentStatement.periodStart = e.target.value; saveToLocalStorage(); renderDashboard(); });
-  $("#periodEnd").addEventListener("change", e => { state.currentStatement.periodEnd = e.target.value; saveToLocalStorage(); renderDashboard(); });
+  const syncPeriod = () => {
+    let s = $("#periodStart").value, e = $("#periodEnd").value;
+    if (s && e && e < s) {
+      toast("Date range swapped", "End was before start — fixed automatically.", "ok", 2500);
+      [s, e] = [e, s];
+      $("#periodStart").value = s; $("#periodEnd").value = e;
+    }
+    state.currentStatement.periodStart = s;
+    state.currentStatement.periodEnd = e;
+    saveToLocalStorage(); renderDashboard();
+  };
+  $("#periodStart").addEventListener("change", syncPeriod);
+  $("#periodEnd").addEventListener("change", syncPeriod);
   $("#stmtName").addEventListener("input", e => { state.currentStatement.name = e.target.value; saveToLocalStorage(); });
 
   // Upload (drag & drop + browse)
@@ -1677,13 +2338,48 @@ function wireEvents() {
   $("#reviewFilters").addEventListener("click", e => { const c = e.target.closest("[data-filter]"); if (c) { activeFilter = c.dataset.filter; renderReview(); } });
   $("#reviewSearch").addEventListener("input", e => { searchTerm = e.target.value.trim(); renderReview(); });
   $("#reviewSort").addEventListener("change", e => { sortBy = e.target.value; renderReview(); });
+
+  // "First unreviewed" scroll
+  document.addEventListener("click", e => {
+    if (!e.target.matches("#btnFirstUnreviewed")) return;
+    const firstRow = document.querySelector("tr.row-review");
+    if (firstRow) firstRow.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+
+  // Queue keyboard shortcuts
+  document.addEventListener("keydown", e => {
+    if (!document.querySelector("#view-queue.active")) return;
+    if (queueAnimating) return;
+    if (e.target.matches("input, textarea, select")) return;
+    const queue = buildQueueList();
+    if (!queue.length) return;
+    const t = queue[Math.min(queueIdx, queue.length - 1)];
+    if (e.key === "ArrowRight") { e.preventDefault(); queueSkip(); }
+    if (e.key === "ArrowLeft")  { e.preventDefault(); if (queueIdx > 0) { queueIdx--; queueStreak = 0; renderQueue(); } }
+    if (e.key === "e" || e.key === "E") { e.preventDefault(); queueExcludeItem(t.id); }
+    if (e.key === "1") { e.preventDefault(); queueLog(t.id, 0); }
+    if (e.key === "2") { e.preventDefault(); queueLog(t.id, 25); }
+    if (e.key === "3") { e.preventDefault(); queueLog(t.id, 50); }
+    if (e.key === "4") { e.preventDefault(); queueLog(t.id, 75); }
+    if (e.key === "5") { e.preventDefault(); queueLog(t.id, 100); }
+  });
+  $("#reviewTableWrap").addEventListener("change", e => {
+    if (!e.target.matches(".custom-pct-input")) return;
+    const pct = clamp(parseInt(e.target.value) || 0, 0, 100);
+    setSplit(e.target.dataset.id, pct);
+  });
+  $("#reviewTableWrap").addEventListener("keydown", e => {
+    if (e.key !== "Enter" || !e.target.matches(".custom-pct-input")) return;
+    const pct = clamp(parseInt(e.target.value) || 0, 0, 100);
+    setSplit(e.target.dataset.id, pct);
+    e.target.blur();
+  });
   $("#reviewTableWrap").addEventListener("click", e => {
     const splitBtn = e.target.closest(".splitbar button");
     if (splitBtn) {
       const id = splitBtn.closest(".splitbar").dataset.id;
       if (splitBtn.dataset.pct != null) setSplit(id, +splitBtn.dataset.pct);
       else if (splitBtn.dataset.act === "exclude") excludeTx(id);
-      else if (splitBtn.dataset.act === "custom") customSplit(id);
       return;
     }
     if (e.target.id === "btnEmptyDemo") loadDemoData();
@@ -1700,6 +2396,14 @@ function wireEvents() {
     if (note) { const t = state.transactions.find(x => x.id === note.dataset.id); if (t) { t.notes = note.value; saveToLocalStorage(); } }
   });
   $("#btnApplyRules").addEventListener("click", applyRulesToCurrent);
+  $("#btnStartOver").addEventListener("click", startOver);
+  $("#btnDeleteCurrent").addEventListener("click", clearCurrentStatement);
+  $("#btnMarkComplete").addEventListener("click", markStatementProcessed);
+  $("#btnAddManual").addEventListener("click", addManualEntry);
+  $("#manualList").addEventListener("click", e => {
+    const del = e.target.closest("[data-manual-del]");
+    if (del) deleteManualEntry(del.dataset.manualDel);
+  });
 
   // Bulk actions
   $("#bulkBar").addEventListener("click", e => {
@@ -1752,7 +2456,7 @@ function wireEvents() {
   $("#btnExportJson").addEventListener("click", exportAllDataJson);
   $("#btnImportJson").addEventListener("click", () => $("#importJsonInput").click());
   $("#importJsonInput").addEventListener("change", e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => importAllDataJson(r.result); r.readAsText(f); e.target.value = ""; });
-  $("#btnClearCurrent").addEventListener("click", () => { if (confirm("Clear the current statement's transactions? (Past statements are kept.)")) { state.transactions = []; state.currentStatement = { name: "", periodStart: "", periodEnd: "" }; saveToLocalStorage(); refreshAll(); toast("Cleared", "Current statement reset."); } });
+  $("#btnClearCurrent").addEventListener("click", clearCurrentStatement);
   $("#btnDeleteAll").addEventListener("click", () => { if (confirm("Delete ALL local data including rules and history? This cannot be undone.")) { localStorage.removeItem(LS_KEY); state = { settings: defaultSettings(), rules: defaultRules(), transactions: [], pastStatements: [], processedHashes: {}, currentStatement: { name: "", periodStart: "", periodEnd: "" } }; applyTheme(); refreshAll(); showView("dashboard"); toast("Deleted", "All local data removed.", "warn"); } });
 }
 
@@ -1761,16 +2465,6 @@ function setSplitSilent(t, pct) {
   t.splitType = pct === 50 ? "shared" : pct === 0 ? "luke" : pct === 100 ? "hannah" : "custom";
 }
 
-function customSplit(id) {
-  const t = state.transactions.find(x => x.id === id); if (!t) return;
-  const amt = Math.abs(t.amount);
-  openModal(`<h3>Custom split</h3><div class="modal-sub">${esc(t.merchantName)} &middot; ${money(amt)}</div>
-    <div class="field"><label>${esc(state.settings.partnerName)}'s percentage</label><input id="csPct" type="number" min="0" max="100" value="${t.hannahPercent || state.settings.defaultPct}"><div class="hint">Or enter an exact dollar amount below and the % is computed.</div></div>
-    <div class="field"><label>${esc(state.settings.partnerName)} owes ($)</label><input id="csAmt" type="number" min="0" step="0.01" placeholder="auto"></div>
-    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" id="csSave">Apply</button></div>`);
-  $("#csAmt").addEventListener("input", e => { const v = parseFloat(e.target.value); if (!isNaN(v) && amt > 0) $("#csPct").value = clamp(Math.round(v / amt * 100), 0, 100); });
-  $("#csSave").addEventListener("click", () => { const pct = clamp(parseInt($("#csPct").value) || 0, 0, 100); closeModal(); setSplit(id, pct); });
-}
 
 function applyRulesToCurrent() {
   let changed = 0;
@@ -1907,6 +2601,18 @@ init();
   function clearToken() { localStorage.removeItem(TOKEN_KEY); }
   function setToken(t)  { t = (t || '').trim(); if (!t) return false; localStorage.setItem(TOKEN_KEY, t); return true; }
 
+  // ── Share-link pairing ─────────────────────────────────────────
+  // A link like #sync=TOKEN lets another device auto-pair without
+  // manually pasting the SHARED_SECRET into Settings.
+  function tokenFromUrl() {
+    const m = location.hash.match(/[#&]sync=([^&]+)/);
+    return m ? decodeURIComponent(m[1]) : null;
+  }
+  function buildShareLink() {
+    const token = getToken(); if (!token) return null;
+    return `${location.origin}${location.pathname}#sync=${encodeURIComponent(token)}`;
+  }
+
   // ── State pack / unpack ──────────────────────────────────────
   function packState() {
     let appState = null;
@@ -1932,17 +2638,37 @@ init();
   }
 
   // ── Merge ────────────────────────────────────────────────────
+  function applyAndMarkSynced(cloudPayload, msg) {
+    if (!unpackAndApply(cloudPayload)) return;
+    // Record this as a sync point so future loads compare timestamps
+    // instead of re-triggering the "never synced" prompt every time.
+    localStorage.setItem(SYNCED_KEY, cloudPayload.updatedAt || new Date().toISOString());
+    setSyncStatus('connected', msg);
+    updateLastSynced();
+  }
+
   function mergeCloud(cloudPayload) {
     if (!cloudPayload) return;
-    const hasLocal = !!localStorage.getItem(APP_LS_KEY);
+    const hasLocal  = !!localStorage.getItem(APP_LS_KEY);
+    const rawSynced = localStorage.getItem(SYNCED_KEY);
     if (!hasLocal) {
-      if (unpackAndApply(cloudPayload)) setSyncStatus('connected', 'Loaded state from cloud.');
+      applyAndMarkSynced(cloudPayload, 'Loaded state from cloud.');
+      return;
+    }
+    if (!rawSynced) {
+      // Never synced on this device before. There's no timestamp to compare against,
+      // so don't silently report "already in sync" — that would mask real cloud data.
+      if (confirm('This device has local data that has never been synced. Replace it with the shared cloud data?')) {
+        applyAndMarkSynced(cloudPayload, 'Loaded state from cloud.');
+      } else {
+        setSyncStatus('local-only', 'Kept local data. Push to overwrite the cloud instead.');
+      }
       return;
     }
     const cloudMs  = cloudPayload.updatedAt ? Date.parse(cloudPayload.updatedAt) : 0;
-    const syncedMs = (() => { try { return Date.parse(localStorage.getItem(SYNCED_KEY) || ''); } catch { return 0; } })();
+    const syncedMs = Date.parse(rawSynced);
     if (cloudMs > syncedMs) {
-      if (unpackAndApply(cloudPayload)) setSyncStatus('connected', 'Cloud state was newer — applied.');
+      applyAndMarkSynced(cloudPayload, 'Cloud state was newer — applied.');
     } else {
       setSyncStatus('connected', cloudMs < syncedMs ? 'Local state is newer. Push to sync.' : 'Already in sync.');
     }
@@ -2061,17 +2787,36 @@ init();
       updateLastSynced();
     });
 
+    const shareBtn = document.getElementById('fsSyncShareBtn');
+    shareBtn?.addEventListener('click', async () => {
+      if (!getToken()) {
+        toast('Sync', 'Set up your own sync token above first (paste your SHARED_SECRET), then share the link.', 'warn');
+        return;
+      }
+      await pushCloud();
+      const link = buildShareLink();
+      if (link && typeof copyToClipboard === 'function') copyToClipboard(link, 'Shareable link copied — send it to Hannah.');
+    });
+
     updateLastSynced();
   }
 
   // ── Boot ─────────────────────────────────────────────────────
   async function boot() {
     getDeviceId();
+    const urlToken = tokenFromUrl();
+    let justPaired = false;
+    if (urlToken && setToken(urlToken)) {
+      justPaired = true;
+      history.replaceState(null, '', location.pathname + location.search);
+    }
     wireUI();
     const token = getToken();
     if (!token) { setSyncStatus('local-only', ''); return; }
     const payload = await pullCloud();
     if (payload) mergeCloud(payload);
+    else if (justPaired) setSyncStatus('error', 'Paired, but no shared data found yet.');
+    if (justPaired && typeof toast === 'function') toast('Synced', 'This device is now paired and up to date.');
     updateLastSynced();
   }
 
