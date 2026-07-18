@@ -378,7 +378,7 @@ kbd { display: inline-block; padding: 1px 5px; border: 1px solid var(--border); 
 /* ---------- Modal ---------- */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; place-items: center; z-index: 100; padding: 20px; }
 .modal-overlay.open { display: grid; }
-.modal { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow-lg); width: 100%; max-width: 460px; padding: 22px; border: 1px solid var(--border); }
+.modal { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow-lg); width: 100%; max-width: 460px; padding: 22px; border: 1px solid var(--border); max-height: calc(100vh - 40px); overflow-y: auto; }
 .modal h3 { margin-bottom: 4px; }
 .modal .modal-sub { color: var(--text-muted); font-size: 13.5px; margin-bottom: 16px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
