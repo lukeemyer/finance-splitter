@@ -1175,9 +1175,14 @@ function calculateDashboardTotals() {
   const tx = state.transactions;
   let hannahOwes = 0, includedTotal = 0, lukePortion = 0;
   let needReview = 0, reviewed = 0, excluded = 0, processed = 0, nonExpense = 0;
+  let statementTotal = 0, statementCount = 0;
   for (const t of tx) {
     if (t.status === "processed") { processed++; continue; }
     if (t.kind !== "expense") { nonExpense++; continue; }
+    // Counted before the status checks below, so the statement total is a real
+    // number the moment a statement is imported, not only once things are split.
+    statementTotal += Math.abs(t.amount);
+    statementCount++;
     if (t.status === "excluded") { excluded++; continue; }
     if (t.status === "needs-review") { needReview++; continue; }
     if (t.status === "reviewed") {
@@ -1188,6 +1193,7 @@ function calculateDashboardTotals() {
   }
   const reviewableTotal = reviewed + needReview;
   return { hannahOwes, includedTotal, lukePortion, needReview, reviewed, excluded, processed, nonExpense,
+           statementTotal, statementCount,
            reviewableTotal, progress: reviewableTotal ? Math.round(reviewed / reviewableTotal * 100) : 0 };
 }
 
@@ -1262,6 +1268,7 @@ function renderDashboard() {
 
   const cards = [
     { label: `${s.partnerName} owes`, value: money(t.hannahOwes), sub: "total to request this period", hero: true },
+    { label: "Statement total", value: money(t.statementTotal), sub: `all ${t.statementCount} charge${t.statementCount === 1 ? "" : "s"} this period, split or not` },
     { label: "Included shared expenses", value: money(t.includedTotal), sub: `total of the ${t.reviewed} reviewed charges` },
     { label: `${s.lukeName}'s portion`, value: money(t.lukePortion), sub: "your share of those charges" },
     { label: "Needs review", value: t.needReview, sub: "charges still to classify" },
