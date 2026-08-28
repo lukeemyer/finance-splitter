@@ -2856,13 +2856,21 @@ init();
   }
 
   // ── API calls ────────────────────────────────────────────────
+  // A rejected token and an unreachable backend are different problems; showing
+  // "Invalid token" for both sends you hunting for the wrong bug.
+  function syncErrorFor(status) {
+    if (status === 401) return 'Token rejected \u2014 re-check your sync token in Settings.';
+    if (status === 413) return 'State too large to sync.';
+    if (status >= 500)  return 'Cloud storage unreachable. Your data is safe on this device.';
+    return `Server error ${status}.`;
+  }
+
   async function pullCloud() {
     const token = getToken(); if (!token) { setSyncStatus('local-only', ''); return null; }
     setSyncStatus('syncing', 'Pulling from cloud…');
     try {
       const r = await fetch('/api/get-state', { headers: { Authorization: `Bearer ${token}` } });
-      if (r.status === 401) { setSyncStatus('error', 'Invalid token.'); return null; }
-      if (!r.ok)            { setSyncStatus('error', `Server error ${r.status}.`); return null; }
+      if (!r.ok) { setSyncStatus('error', syncErrorFor(r.status)); return null; }
       const d = await r.json();
       setSyncStatus('connected', 'Pull complete.');
       return d.state || null;
@@ -2878,9 +2886,7 @@ init();
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body:    JSON.stringify(packState()),
       });
-      if (r.status === 401) { setSyncStatus('error', 'Invalid token.'); return false; }
-      if (r.status === 413) { setSyncStatus('error', 'State too large.'); return false; }
-      if (!r.ok)            { setSyncStatus('error', `Server error ${r.status}.`); return false; }
+      if (!r.ok) { setSyncStatus('error', syncErrorFor(r.status)); return false; }
       const d = await r.json();
       localStorage.setItem(SYNCED_KEY, d.savedAt);
       setSyncStatus('connected', `Saved ${new Date(d.savedAt).toLocaleTimeString()}.`);
@@ -2900,8 +2906,7 @@ init();
     setSyncStatus('syncing', 'Testing…');
     try {
       const r = await fetch('/api/get-state', { headers: { Authorization: `Bearer ${token}` } });
-      if (r.status === 401) { setSyncStatus('error', 'Invalid token.'); return false; }
-      if (!r.ok)            { setSyncStatus('error', `Error ${r.status}.`); return false; }
+      if (!r.ok) { setSyncStatus('error', syncErrorFor(r.status)); return false; }
       setSyncStatus('connected', 'Connection OK.');
       return true;
     } catch { setSyncStatus('error', 'Network error.'); return false; }
