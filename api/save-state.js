@@ -33,8 +33,9 @@ export default async function handler(req, res) {
   const savedAt = new Date().toISOString();
   const backupKey = `finance-splitter:backup:${savedAt}`;
 
-  const client = createClient({ url: process.env.REDIS_URL });
+  let client;
   try {
+    client = createClient({ url: (process.env.REDIS_URL || '').trim() });
     await client.connect();
 
     await client.set('finance-splitter:state', bodyStr);
@@ -54,9 +55,13 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json({ ok: true, savedAt });
-  } catch {
+  } catch (err) {
+    const u = process.env.REDIS_URL;
+    let host = 'unset';
+    if (u) { try { const p = new URL(u); host = `${p.protocol}//${p.hostname}:${p.port || '(default)'}`; } catch { host = 'unparseable'; } }
+    console.error('%s failed | redis=%s | %s: %s (code=%s)', 'save-state', host, err?.name, err?.message, err?.code);
     return res.status(500).json({ error: 'Failed to save state' });
   } finally {
-    client.disconnect().catch(() => {});
+    client?.disconnect().catch(() => {});
   }
 }
