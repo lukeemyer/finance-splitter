@@ -234,6 +234,7 @@ tr.row-excluded { opacity: .68; }
 .splitbar button:active { transform: translateY(1px); }
 .splitbar button.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); box-shadow: var(--shadow); }
 .splitbar button.ex.on { background: var(--text-muted); border-color: var(--text-muted); color: var(--surface); }
+.splitbar button.rc.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
 .compact .splitbar button { padding: 5px 9px; min-width: 34px; font-size: 12px; }
 .splitbar .custom-pct-input {
   border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted);
@@ -1405,6 +1406,7 @@ function renderReview() {
       : t.status === "excluded" ? "row-excluded"
       : t.status === "needs-review" ? "row-review" : "";
     const isEx = t.status === "excluded";
+    const hasReceipt = !!(t.receiptItems && t.receiptItems.length);
     const on = (p) => t.status === "reviewed" && t.hannahPercent === p ? "on" : "";
     const stdPcts = [0, 25, 50, 75, 100];
     const customVal = (t.status === "reviewed" && !stdPcts.includes(t.hannahPercent)) ? t.hannahPercent : "";
@@ -1415,6 +1417,7 @@ function renderReview() {
         <button data-pct="75" class="${on(75)}">75%</button>
         <button data-pct="100" class="${on(100)}">100%</button>
         <input class="custom-pct-input" type="number" min="0" max="100" data-id="${t.id}" value="${customVal}" placeholder="%" title="Custom %">
+        <button data-act="receipt" class="rc ${hasReceipt ? "on" : ""}" title="${hasReceipt ? "Receipt attached — tap to redo" : "Split by receipt"}">🧾</button>
         <button data-act="exclude" class="ex ${isEx ? "on" : ""}" title="Exclude">✕</button>
       </div>`;
     html += `<tr class="${rowClass}" data-row="${t.id}">
@@ -1489,6 +1492,13 @@ function setSplit(id, pct) {
       sb.querySelectorAll("button[data-pct]").forEach(btn => { btn.className = (pct === +btn.dataset.pct) ? "on" : ""; });
       const ci = sb.querySelector(".custom-pct-input");
       if (ci) ci.value = [0,25,50,75,100].includes(pct) ? "" : pct;
+      // Keep the receipt button honest when a split arrives from applyReceiptSplit.
+      const rb = sb.querySelector('button[data-act="receipt"]');
+      if (rb) {
+        const has = !!(t.receiptItems && t.receiptItems.length);
+        rb.className = has ? "rc on" : "rc";
+        rb.title = has ? "Receipt attached — tap to redo" : "Split by receipt";
+      }
     }
     const owesTd = row.querySelector("[data-cell=owes]");
     if (owesTd) { const sp = calculateTransactionSplit(t); owesTd.innerHTML = `<strong>${sp.included ? money(sp.hannahOwes) : "—"}</strong>`; }
@@ -2263,8 +2273,10 @@ function queueMarkRest() {
    ========================================================================= */
 let receiptState = null; // { transactionId, parsed: {items, tax, tip, total}, assignments: [] }
 
-function openReceiptModal(t) {
-  receiptState = { transactionId: t.id };
+// onApply(id, pct) decides what happens once a receipt is split: the queue animates
+// and advances (queueLog), the review table updates the row in place (setSplit).
+function openReceiptModal(t, onApply) {
+  receiptState = { transactionId: t.id, onApply: onApply || queueLog };
   renderReceiptUpload(t);
 }
 
@@ -2386,9 +2398,10 @@ function applyReceiptSplit(t) {
   t.receiptItems = p.items.map((it, i) => ({ name: it.name, price: it.price, assignedTo: receiptState.assignments[i] }));
   t.receiptTax = p.tax || 0;
   t.receiptTip = p.tip || 0;
+  const apply = receiptState.onApply;
   receiptState = null;
   closeModal();
-  queueLog(t.id, pct);
+  apply(t.id, pct);
 }
 
 // Weighted % owed by the partner: items assigned to them count fully, "shared"
@@ -2561,6 +2574,10 @@ function wireEvents() {
       const id = splitBtn.closest(".splitbar").dataset.id;
       if (splitBtn.dataset.pct != null) setSplit(id, +splitBtn.dataset.pct);
       else if (splitBtn.dataset.act === "exclude") excludeTx(id);
+      else if (splitBtn.dataset.act === "receipt") {
+        const t = state.transactions.find(x => x.id === id);
+        if (t) openReceiptModal(t, setSplit);
+      }
       return;
     }
     if (e.target.id === "btnEmptyDemo") loadDemoData();
