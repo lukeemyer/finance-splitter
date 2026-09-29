@@ -30,8 +30,12 @@ Upstash Redis. No build step, no framework, no auth system — intentionally min
 
 State/sync: `packState`, `mergeCloud`, `pushCloud`/`pullCloud`, `loadFromLocalStorage`,
 `getToken`/`clearToken`, `getDeviceId`.
-Import pipeline: `parseCsv`, `detectColumns`, `normalizeRow`, `buildPendingImport`,
-`stagePendingImport` (shared dedupe + preview staging), `confirmImport`, `handleCsvText`,
+Import pipeline: `importFiles` (multi-file drop/select) → `readFileText` (Excel → CSV)
+→ `parseImportText` → `buildPendingImport` (Amex) or `buildChaseImport`, each returning a
+per-file "part" → `stagePendingImport(parts)` (combined dedupe + one preview) →
+`confirmImport`. `handleCsvText` is the single-text shortcut used by demo data.
+`showColumnMapping` returns a Promise; dismissing the modal resolves null through
+`modalCloseHook` in `closeModal`. Also `parseCsv`, `detectColumns`, `normalizeRow`,
 `detectAmexSplitCredits`.
 Chase import: `handleCsvText` routes files whose headers match `isChaseExport` to
 `buildChaseImport`. It flips the sign (Chase exports purchases as negatives), keeps only

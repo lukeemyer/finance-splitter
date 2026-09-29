@@ -569,14 +569,14 @@ kbd { display: inline-block; padding: 1px 5px; border: 1px solid var(--border); 
     <section class="view" id="view-upload">
       <div class="view-head">
         <h2>Upload Statement</h2>
-        <p>Drop your American Express or Chase export here. From Chase, only Amazon and Costco purchases dated after your last processed statement are imported. Nothing is added until you confirm.</p>
+        <p>Drop your American Express and Chase exports here — both at once is fine. From Chase, only Amazon and Costco purchases dated after your last processed statement are imported. Nothing is added until you confirm.</p>
       </div>
 
       <div class="dropzone" id="dropzone">
         <div class="dz-ico">📥</div>
-        <h3>Drag &amp; drop your Amex or Chase CSV</h3>
-        <p>or click to browse &middot; <span class="helper">.csv or .xlsx</span></p>
-        <input type="file" id="fileInput" accept=".csv,.xlsx,.xls,text/csv" hidden />
+        <h3>Drag &amp; drop your Amex and/or Chase files</h3>
+        <p>or click to browse &middot; <span class="helper">.csv or .xlsx &middot; select both at once</span></p>
+        <input type="file" id="fileInput" accept=".csv,.xlsx,.xls,text/csv" multiple hidden />
       </div>
       <div class="btn-row" style="margin-top:12px">
         <button class="btn" id="btnDemoUpload">✨ Use demo data instead</button>
@@ -1267,7 +1267,12 @@ function copyToClipboard(text, okMsg) {
 }
 
 function openModal(html) { $("#modalBox").innerHTML = html; $("#modalOverlay").classList.add("open"); }
-function closeModal() { $("#modalOverlay").classList.remove("open"); }
+let modalCloseHook = null; // one-shot callback for modals awaiting an answer (column mapping)
+function closeModal() {
+  $("#modalOverlay").classList.remove("open");
+  const hook = modalCloseHook; modalCloseHook = null;
+  if (hook) hook();
+}
 $("#modalOverlay").addEventListener("click", e => { if (e.target.id === "modalOverlay") closeModal(); });
 
 /* =========================================================================
@@ -1709,23 +1714,32 @@ function renderSettings() {
 /* =========================================================================
    IMPORT FLOW
    ========================================================================= */
-function handleCsvText(text, fileName) {
-  const rows = parseCsv(text.replace(/^﻿/, ""));
-  if (rows.length < 2) { toast("Empty file", "No data rows found.", "err"); return; }
-  const headers = rows[0];
-  const mapping = detectColumns(headers);
-  if (isChaseExport(headers)) { buildChaseImport(rows.slice(1), mapping, fileName); return; }
-  if (mapping.date === -1 || mapping.amount === -1 || mapping.description === -1) {
-    // Show manual column mapping UI
-    showColumnMapping(headers, rows, fileName, mapping);
-    return;
-  }
-  buildPendingImport(rows.slice(1), mapping, fileName);
+// Stage one or more statement texts as a single pending import.
+async function handleCsvText(text, fileName) {
+  const part = await parseImportText(text, fileName);
+  if (part) stagePendingImport([part]);
 }
 
-function showColumnMapping(headers, rows, fileName, mapping) {
+// Parse one file into an import "part": { txns, rowCount, fileName, source, chase }.
+// Resolves null if the file is empty or the user cancels column mapping.
+async function parseImportText(text, fileName) {
+  const rows = parseCsv(text.replace(/^﻿/, ""));
+  if (rows.length < 2) { toast("Empty file", `No data rows found in ${fileName}.`, "err"); return null; }
+  const headers = rows[0];
+  let mapping = detectColumns(headers);
+  if (isChaseExport(headers)) return buildChaseImport(rows.slice(1), mapping, fileName);
+  if (mapping.date === -1 || mapping.amount === -1 || mapping.description === -1) {
+    mapping = await showColumnMapping(headers, fileName, mapping);
+    if (!mapping) return null;
+  }
+  return buildPendingImport(rows.slice(1), mapping, fileName);
+}
+
+// Resolves with the chosen mapping, or null if the modal is dismissed.
+function showColumnMapping(headers, fileName, mapping) {
+  return new Promise(resolve => {
   const opts = (sel) => headers.map((h, i) => `<option value="${i}" ${sel === i ? "selected" : ""}>${esc(h || "Column " + (i + 1))}</option>`).join("");
-  openModal(`<h3>Map your columns</h3><div class="modal-sub">We couldn't auto-detect all required columns. Match them below.</div>
+  openModal(`<h3>Map your columns</h3><div class="modal-sub">We couldn't auto-detect all required columns in ${esc(fileName)}. Match them below.</div>
     <div class="field"><label>Date column *</label><select id="mapDate"><option value="-1">— none —</option>${opts(mapping.date)}</select></div>
     <div class="field"><label>Description column *</label><select id="mapDesc"><option value="-1">— none —</option>${opts(mapping.description)}</select></div>
     <div class="field"><label>Amount column *</label><select id="mapAmt"><option value="-1">— none —</option>${opts(mapping.amount)}</select></div>
@@ -1743,15 +1757,18 @@ function showColumnMapping(headers, rows, fileName, mapping) {
       address: mapping.address, cityState: mapping.cityState, zipCode: mapping.zipCode
     };
     if (m.date === -1 || m.amount === -1 || m.description === -1) { toast("Missing columns", "Date, description and amount are required.", "err"); return; }
+    modalCloseHook = null;
     closeModal();
-    buildPendingImport(rows.slice(1), m, fileName);
+    resolve(m);
+  });
+  modalCloseHook = () => resolve(null);
   });
 }
 
 function buildPendingImport(dataRows, mapping, fileName) {
   const txns = dataRows.map(r => normalizeRow(r, mapping, fileName)).filter(t => t.date && !isNaN(t.amount));
   detectAmexSplitCredits(txns, mapping.extended != null ? mapping.extended : -1);
-  stagePendingImport(txns, txns.length, fileName, null);
+  return { txns, rowCount: txns.length, fileName, source: "Amex", chase: null };
 }
 
 /* ---------- Chase import ----------
@@ -1794,15 +1811,24 @@ function buildChaseImport(dataRows, mapping, fileName) {
   const cutoff = lastProcessedPeriodEnd();
   const matching = txns.filter(t => CHASE_MERCHANT_RX.test(t.description));
   const kept = matching.filter(t => !cutoff || t.date > cutoff);
-  stagePendingImport(kept, txns.length, fileName, {
+  return { txns: kept, rowCount: txns.length, fileName, source: "Chase", chase: {
     otherMerchants: txns.length - matching.length,
     beforeCutoff: matching.length - kept.length,
     cutoff
-  });
+  } };
 }
 
-function stagePendingImport(txns, rowCount, fileName, chase) {
-  // detect duplicates within file and against current working set + processed
+// Combine parsed parts (one per file) into a single pending import.
+function stagePendingImport(parts) {
+  const txns = parts.flatMap(p => p.txns);
+  const rowCount = parts.reduce((a, p) => a + p.rowCount, 0);
+  const chaseParts = parts.filter(p => p.chase);
+  const chase = chaseParts.length ? {
+    otherMerchants: chaseParts.reduce((a, p) => a + p.chase.otherMerchants, 0),
+    beforeCutoff: chaseParts.reduce((a, p) => a + p.chase.beforeCutoff, 0),
+    cutoff: chaseParts[0].chase.cutoff
+  } : null;
+  // detect duplicates within the upload and against current working set + processed
   const seen = new Set();
   const currentHashes = new Set(state.transactions.map(t => t.transactionHash));
   let dupInFile = 0, alreadyCurrent = 0, alreadyProcessed = 0, nonExpense = 0;
@@ -1818,7 +1844,9 @@ function stagePendingImport(txns, rowCount, fileName, chase) {
   }
   const dates = kept.map(t => t.date).filter(Boolean).sort();
   const total = kept.reduce((a, t) => a + (t.kind === "expense" ? Math.abs(t.amount) : 0), 0);
-  pendingImport = { txns: kept, fileName, dupInFile, alreadyCurrent, alreadyProcessed, nonExpense, chase,
+  const files = parts.map(p => ({ fileName: p.fileName, source: p.source,
+                                  count: kept.filter(t => t.sourceFileName === p.fileName).length }));
+  pendingImport = { txns: kept, files, dupInFile, alreadyCurrent, alreadyProcessed, nonExpense, chase,
                     rowCount, dateStart: dates[0] || "", dateEnd: dates[dates.length - 1] || "", total };
   renderUploadResult();
 }
@@ -1830,8 +1858,9 @@ function renderUploadResult() {
   $("#uploadResult").innerHTML = `
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-        <div><h3>📄 ${esc(p.fileName || "Imported file")}</h3>
-        <div class="helper">${p.rowCount} rows parsed${p.chase ? " &middot; Chase: Amazon &amp; Costco only" : ""}</div></div>
+        <div><h3>📄 ${p.files.length === 1 ? esc(p.files[0].fileName || "Imported file") : p.files.length + " files"}</h3>
+        <div class="helper">${p.rowCount} rows parsed${p.chase ? " &middot; Chase: Amazon &amp; Costco only" : ""}</div>
+        ${p.files.length > 1 ? `<div class="helper">${p.files.map(f => `${esc(f.source)}: ${esc(f.fileName)} (${f.count} new)`).join(" &middot; ")}</div>` : ""}</div>
         <span class="badge shared">${p.txns.length} ready to import</span>
       </div>
       <div class="grid stat-grid" style="margin-top:16px">
@@ -2629,8 +2658,8 @@ function wireEvents() {
   dz.addEventListener("click", () => fi.click());
   dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("drag"); });
   dz.addEventListener("dragleave", () => dz.classList.remove("drag"));
-  dz.addEventListener("drop", e => { e.preventDefault(); dz.classList.remove("drag"); if (e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]); });
-  fi.addEventListener("change", e => { if (e.target.files[0]) readFile(e.target.files[0]); fi.value = ""; });
+  dz.addEventListener("drop", e => { e.preventDefault(); dz.classList.remove("drag"); importFiles(e.dataTransfer.files); });
+  fi.addEventListener("change", e => { importFiles(e.target.files); fi.value = ""; });
   $("#btnDemoUpload").addEventListener("click", loadDemoData);
 
   // Review interactions (event delegation)
@@ -2803,33 +2832,47 @@ function deleteStatement(id) {
   saveToLocalStorage(); renderPast(); toast("Deleted", st.name, "warn");
 }
 
-function readFile(file) {
+// Read every dropped/selected file, then stage them together as one import.
+async function importFiles(fileList) {
+  const parts = [];
+  for (const file of Array.from(fileList || [])) {
+    const text = await readFileText(file);
+    if (text == null) continue;
+    const part = await parseImportText(text, file.name);
+    if (part) parts.push(part);
+  }
+  if (parts.length) stagePendingImport(parts);
+}
+
+// Resolves with the file's CSV text (Excel converted), or null after toasting why not.
+function readFileText(file) {
   const name = file.name.toLowerCase();
   const isExcel = /\.(xlsx|xls)$/.test(name);
   const isCsv   = /\.csv$/.test(name) || file.type === "text/csv";
-  if (!isExcel && !isCsv) { toast("Wrong file type", "Please upload a .csv or .xlsx file.", "err"); return; }
+  if (!isExcel && !isCsv) { toast("Wrong file type", `${file.name} isn't a .csv or .xlsx file.`, "err"); return Promise.resolve(null); }
 
-  const reader = new FileReader();
-  reader.onerror = () => toast("Read error", "Couldn't read that file.", "err");
-
-  if (isExcel) {
-    reader.onload = () => {
-      try {
-        const wb = XLSX.read(reader.result, { type: "array" });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const csv = XLSX.utils.sheet_to_csv(ws);
-        // Amex xlsx exports have metadata rows above the actual column headers.
-        // Find the first row that contains Date + Amount + Description and strip above it.
-        const lines = csv.split("\n");
-        const hi = lines.findIndex(l => /\bdate\b/i.test(l) && /\bamount\b/i.test(l) && /\bdescription\b/i.test(l));
-        handleCsvText(hi > 0 ? lines.slice(hi).join("\n") : csv, file.name);
-      } catch { toast("Excel error", "Couldn't parse that Excel file.", "err"); }
-    };
-    reader.readAsArrayBuffer(file);
-  } else {
-    reader.onload = () => handleCsvText(reader.result, file.name);
-    reader.readAsText(file);
-  }
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onerror = () => { toast("Read error", `Couldn't read ${file.name}.`, "err"); resolve(null); };
+    if (isExcel) {
+      reader.onload = () => {
+        try {
+          const wb = XLSX.read(reader.result, { type: "array" });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          const csv = XLSX.utils.sheet_to_csv(ws);
+          // Amex xlsx exports have metadata rows above the actual column headers.
+          // Find the first row that contains Date + Amount + Description and strip above it.
+          const lines = csv.split("\n");
+          const hi = lines.findIndex(l => /\bdate\b/i.test(l) && /\bamount\b/i.test(l) && /\bdescription\b/i.test(l));
+          resolve(hi > 0 ? lines.slice(hi).join("\n") : csv);
+        } catch { toast("Excel error", `Couldn't parse ${file.name}.`, "err"); resolve(null); }
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      reader.onload = () => resolve(reader.result);
+      reader.readAsText(file);
+    }
+  });
 }
 
 // Re-render whatever view is active (used after settings changes).

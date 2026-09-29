@@ -10,7 +10,8 @@ Live at **https://finance-splitter-cloud.vercel.app**.
 
 ## What it does
 
-- **Import** an Amex `.csv`, `.xlsx`, or `.xls` export by drag-and-drop. Columns are
+- **Import** an Amex `.csv`, `.xlsx`, or `.xls` export by drag-and-drop — drop or select
+  the Amex and Chase files together and they're combined into one preview. Columns are
   auto-detected, with a manual column-mapping fallback. A preview shows duplicates,
   already-processed rows, and credits/refunds/payments before anything is added.
 - **Chase import** — upload a Chase activity CSV alongside the Amex statement. Only
