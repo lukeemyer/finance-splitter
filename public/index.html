@@ -569,12 +569,12 @@ kbd { display: inline-block; padding: 1px 5px; border: 1px solid var(--border); 
     <section class="view" id="view-upload">
       <div class="view-head">
         <h2>Upload Statement</h2>
-        <p>Drop your American Express CSV export here. Nothing is added until you confirm.</p>
+        <p>Drop your American Express or Chase export here. From Chase, only Amazon and Costco purchases dated after your last processed statement are imported. Nothing is added until you confirm.</p>
       </div>
 
       <div class="dropzone" id="dropzone">
         <div class="dz-ico">📥</div>
-        <h3>Drag &amp; drop your Amex CSV</h3>
+        <h3>Drag &amp; drop your Amex or Chase CSV</h3>
         <p>or click to browse &middot; <span class="helper">.csv or .xlsx</span></p>
         <input type="file" id="fileInput" accept=".csv,.xlsx,.xls,text/csv" hidden />
       </div>
@@ -1349,7 +1349,7 @@ function venmoMessage() {
   const s = state.settings, t = calculateDashboardTotals();
   const start = state.currentStatement.periodStart, end = state.currentStatement.periodEnd;
   const period = start ? ` from ${fmtDate(start)} to ${fmtDate(end)}` : "";
-  return `${s.partnerName} owes ${s.lukeName} ${money(t.hannahOwes)} for shared Amex expenses${period}.`;
+  return `${s.partnerName} owes ${s.lukeName} ${money(t.hannahOwes)} for shared card expenses${period}.`;
 }
 
 function updateNavBadge() {
@@ -1714,6 +1714,7 @@ function handleCsvText(text, fileName) {
   if (rows.length < 2) { toast("Empty file", "No data rows found.", "err"); return; }
   const headers = rows[0];
   const mapping = detectColumns(headers);
+  if (isChaseExport(headers)) { buildChaseImport(rows.slice(1), mapping, fileName); return; }
   if (mapping.date === -1 || mapping.amount === -1 || mapping.description === -1) {
     // Show manual column mapping UI
     showColumnMapping(headers, rows, fileName, mapping);
@@ -1750,6 +1751,57 @@ function showColumnMapping(headers, rows, fileName, mapping) {
 function buildPendingImport(dataRows, mapping, fileName) {
   const txns = dataRows.map(r => normalizeRow(r, mapping, fileName)).filter(t => t.date && !isNaN(t.amount));
   detectAmexSplitCredits(txns, mapping.extended != null ? mapping.extended : -1);
+  stagePendingImport(txns, txns.length, fileName, null);
+}
+
+/* ---------- Chase import ----------
+   Chase exports are only used for Amazon and Costco purchases. Everything else on
+   the card is personal, so it's dropped before staging. */
+const CHASE_MERCHANT_RX = /amazon|amzn|costco/i;
+
+function isChaseExport(headers) {
+  const norm = headers.map(h => String(h).trim().toLowerCase());
+  return ["transaction date", "post date", "type", "amount", "description"].every(h => norm.includes(h));
+}
+
+// Latest settled period end. Chase rows were never processed through the app, so
+// the processed-hash check can't catch old ones — the date is the only guard.
+function lastProcessedPeriodEnd() {
+  return state.pastStatements.map(s => s.periodEnd).filter(Boolean).sort().pop() || "";
+}
+
+function buildChaseImport(dataRows, mapping, fileName) {
+  const decode = (s) => s.replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/&quot;/g, '"');
+  const seenKeys = {};
+  const txns = [];
+  for (const r of dataRows) {
+    const t = normalizeRow(r, mapping, fileName);
+    if (!t.date || isNaN(t.amount)) continue;
+    // Chase exports purchases as negatives; the app's convention (Amex) is positive.
+    t.amount = -t.amount;
+    t.description = decode(t.description);
+    // Drop Chase's trailing order code ("Amazon.com*5R7KL1FY2" -> "Amazon.com").
+    t.merchantName = cleanMerchantName(t.description.replace(/\*[a-z0-9]+$/i, ""));
+    t.cardMember = "Chase";
+    // No reference column, so number identical rows (same day, amount, description)
+    // to keep genuine repeat charges distinct. Stable across re-downloads of the file.
+    const key = [t.date, t.amount.toFixed(2), t.description.toLowerCase()].join("|");
+    seenKeys[key] = (seenKeys[key] || 0) + 1;
+    t.reference = "chase#" + seenKeys[key];
+    t.transactionHash = createTransactionHash(t);
+    txns.push(t);
+  }
+  const cutoff = lastProcessedPeriodEnd();
+  const matching = txns.filter(t => CHASE_MERCHANT_RX.test(t.description));
+  const kept = matching.filter(t => !cutoff || t.date > cutoff);
+  stagePendingImport(kept, txns.length, fileName, {
+    otherMerchants: txns.length - matching.length,
+    beforeCutoff: matching.length - kept.length,
+    cutoff
+  });
+}
+
+function stagePendingImport(txns, rowCount, fileName, chase) {
   // detect duplicates within file and against current working set + processed
   const seen = new Set();
   const currentHashes = new Set(state.transactions.map(t => t.transactionHash));
@@ -1766,8 +1818,8 @@ function buildPendingImport(dataRows, mapping, fileName) {
   }
   const dates = kept.map(t => t.date).filter(Boolean).sort();
   const total = kept.reduce((a, t) => a + (t.kind === "expense" ? Math.abs(t.amount) : 0), 0);
-  pendingImport = { txns: kept, fileName, dupInFile, alreadyCurrent, alreadyProcessed, nonExpense,
-                    rowCount: txns.length, dateStart: dates[0] || "", dateEnd: dates[dates.length - 1] || "", total };
+  pendingImport = { txns: kept, fileName, dupInFile, alreadyCurrent, alreadyProcessed, nonExpense, chase,
+                    rowCount, dateStart: dates[0] || "", dateEnd: dates[dates.length - 1] || "", total };
   renderUploadResult();
 }
 
@@ -1779,7 +1831,7 @@ function renderUploadResult() {
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
         <div><h3>📄 ${esc(p.fileName || "Imported file")}</h3>
-        <div class="helper">${p.rowCount} rows parsed</div></div>
+        <div class="helper">${p.rowCount} rows parsed${p.chase ? " &middot; Chase: Amazon &amp; Costco only" : ""}</div></div>
         <span class="badge shared">${p.txns.length} ready to import</span>
       </div>
       <div class="grid stat-grid" style="margin-top:16px">
@@ -1790,6 +1842,8 @@ function renderUploadResult() {
         ${stat("Already in current set", p.alreadyCurrent)}
         ${stat("Already processed", p.alreadyProcessed)}
         ${stat("Credits/refunds/payments", p.nonExpense)}
+        ${p.chase ? stat("Skipped: not Amazon/Costco", p.chase.otherMerchants) : ""}
+        ${p.chase && p.chase.cutoff ? stat("Skipped: on/before " + fmtDate(p.chase.cutoff), p.chase.beforeCutoff) : ""}
       </div>
       <div class="section-title">Preview (first ${preview.length})</div>
       <div class="table-wrap"><table><thead><tr><th>Date</th><th>Merchant</th><th class="num">Amount</th><th>Category</th><th>Auto-class</th></tr></thead><tbody>
@@ -2673,7 +2727,7 @@ function wireEvents() {
   $("#pastList").addEventListener("click", e => {
     const id = (a) => e.target.closest("[data-past-" + a + "]")?.getAttribute("data-past-" + a);
     if (id("view")) viewStatementDetails(id("view"));
-    else if (id("copy")) { const st = state.pastStatements.find(s => s.id === id("copy")); copyToClipboard(`${state.settings.partnerName} owes ${state.settings.lukeName} ${money(st.hannahOwed)} for shared Amex expenses from ${fmtDate(st.periodStart)} to ${fmtDate(st.periodEnd)}.`, "Old Venmo message copied."); }
+    else if (id("copy")) { const st = state.pastStatements.find(s => s.id === id("copy")); copyToClipboard(`${state.settings.partnerName} owes ${state.settings.lukeName} ${money(st.hannahOwed)} for shared card expenses from ${fmtDate(st.periodStart)} to ${fmtDate(st.periodEnd)}.`, "Old Venmo message copied."); }
     else if (id("export")) exportStatementCsv(id("export"));
     else if (id("reopen")) reopenStatement(id("reopen"));
     else if (id("delete")) deleteStatement(id("delete"));
