@@ -17,8 +17,9 @@ Upstash Redis. No build step, no framework, no auth system — intentionally min
   (ESM, `type: module`). Auth is a single shared bearer token (`SHARED_SECRET`) checked
   against `process.env.SHARED_SECRET`. State is one JSON blob per key in Redis
   (`redis` npm package, not `@upstash/redis` — reads `REDIS_URL` from the Vercel Redis
-  integration). `save-state.js` also writes timestamped backups and prunes to the 20
-  most recent via a Redis sorted set.
+  integration). `save-state.js` does a WATCH/MULTI read-merge-write (see Sync below),
+  stamps `updatedAt` with server time, returns the merged state, and writes timestamped
+  backups pruned to the 20 most recent via a Redis sorted set.
 - `api/parse-receipt.js` — receipt OCR for the "Add Receipt" flow. Takes a base64 JPEG
   data URL (6 MB cap), calls the Anthropic Messages API via plain `fetch` (no SDK) with
   forced tool-use (`record_receipt`) and returns `{items, subtotal, tax, tip, total}`.
@@ -61,8 +62,19 @@ never persisted — only `t.receiptItems`/`t.receiptTax`/`t.receiptTip` are stor
 under the 1 MB sync cap.
 Sync lives in its own IIFE at the bottom of the file and talks to the app only through
 `localStorage` (`financeSplitter:v1`) and `window.fsSyncTrigger` (called from
-`saveToLocalStorage`, debounced 2.5 s). Merge is last-write-wins by `updatedAt` vs
-the device's `fs_last_synced` — there is no per-field merge.
+`saveToLocalStorage`, debounced 2.5 s).
+
+**Sync invariant: a processed statement is never dropped by sync.** `mergeHistory` (in
+both `api/save-state.js` and the sync IIFE; keep them identical) unions `pastStatements`
+by id and `processedHashes`, minus ids in `deletedStatementIds` (tombstones written by
+`tombstoneStatement` on delete/reopen). Everything else (in-progress transactions,
+settings, rules) is last-write-wins: on pull, `mergeCloud` takes the cloud copy if its
+`updatedAt` is newer than `fs_last_synced`, then unions history either way and pushes if
+the cloud was missing any. The server applies the same union on every save, so even an
+old cached client can't erase history. `doMarkProcessed` pushes immediately and warns if
+it failed; failed pushes retry every 60 s; the app re-pulls on `visibilitychange`.
+Background: in Sep 2026 a statement processed during a Redis outage was lost because the
+old whole-blob replace let one device's copy overwrite another's.
 
 ## Split math
 

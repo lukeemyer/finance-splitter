@@ -1,4 +1,4 @@
-import { createClient } from 'redis';
+import { createClient, WatchError } from 'redis';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -8,6 +8,30 @@ const CORS_HEADERS = {
 
 const MAX_BODY_BYTES = 1024 * 1024; // 1 MB
 const MAX_BACKUPS = 20;
+const STATE_KEY = 'finance-splitter:state';
+const MAX_ATTEMPTS = 8;
+
+// Processed statements are history and must survive a push from a device that never
+// saw them (a stale tab, a phone whose earlier push failed). So statements and their
+// processed hashes are unioned with what's already stored, minus statements some
+// device deleted or reopened (tombstoned in deletedStatementIds). Everything else in
+// the payload (the in-progress statement, settings, rules) stays last-write-wins.
+// Keep in sync with mergeHistory() in public/index.html.
+function mergeHistory(incoming, existing) {
+  if (!existing) return incoming;
+  if (!incoming) return existing;
+  const deleted = new Set([...(existing.deletedStatementIds || []), ...(incoming.deletedStatementIds || [])]);
+  const byId = new Map();
+  for (const s of [...(existing.pastStatements || []), ...(incoming.pastStatements || [])]) {
+    if (s && s.id && !deleted.has(s.id)) byId.set(s.id, s);
+  }
+  const processedHashes = {};
+  const allHashes = { ...(existing.processedHashes || {}), ...(incoming.processedHashes || {}) };
+  for (const [hash, statementId] of Object.entries(allHashes)) {
+    if (!deleted.has(statementId)) processedHashes[hash] = statementId;
+  }
+  return { ...incoming, pastStatements: [...byId.values()], processedHashes, deletedStatementIds: [...deleted] };
+}
 
 export default async function handler(req, res) {
   Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
@@ -25,20 +49,41 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Request body must be JSON' });
   }
 
-  const bodyStr = JSON.stringify(body);
-  if (bodyStr.length > MAX_BODY_BYTES) {
+  if (JSON.stringify(body).length > MAX_BODY_BYTES) {
     return res.status(413).json({ error: 'Request body too large' });
   }
-
-  const savedAt = new Date().toISOString();
-  const backupKey = `finance-splitter:backup:${savedAt}`;
 
   let client;
   try {
     client = createClient({ url: (process.env.REDIS_URL || '').trim() });
     await client.connect();
 
-    await client.set('finance-splitter:state', bodyStr);
+    // Read-merge-write under WATCH so two devices saving at once can't drop each
+    // other's statements; retry if the key changed underneath us.
+    let merged, bodyStr, savedAt;
+    for (let attempt = 1; ; attempt++) {
+      await client.watch(STATE_KEY);
+      const raw = await client.get(STATE_KEY);
+      const existing = raw ? JSON.parse(raw) : null;
+      savedAt = new Date().toISOString();
+      // Server clock stamps updatedAt so it compares cleanly with each device's
+      // last-synced time (also server-issued).
+      merged = { ...body, updatedAt: savedAt, appState: mergeHistory(body.appState, existing?.appState) };
+      bodyStr = JSON.stringify(merged);
+      if (bodyStr.length > MAX_BODY_BYTES) {
+        await client.unwatch();
+        return res.status(413).json({ error: 'State too large' });
+      }
+      try {
+        await client.multi().set(STATE_KEY, bodyStr).exec();
+        break;
+      } catch (err) {
+        if (!(err instanceof WatchError) || attempt >= MAX_ATTEMPTS) throw err;
+        await new Promise(r => setTimeout(r, 20 + Math.random() * 80 * attempt));
+      }
+    }
+
+    const backupKey = `finance-splitter:backup:${savedAt}`;
     await client.set(backupKey, bodyStr);
 
     // Track backup keys in a sorted set by timestamp; prune oldest beyond MAX_BACKUPS
@@ -54,7 +99,7 @@ export default async function handler(req, res) {
       }
     }
 
-    return res.status(200).json({ ok: true, savedAt });
+    return res.status(200).json({ ok: true, savedAt, state: merged });
   } catch (err) {
     const u = process.env.REDIS_URL;
     let host = 'unset';

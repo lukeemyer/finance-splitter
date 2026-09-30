@@ -61,9 +61,13 @@ public/index.html  ──  the entire frontend (HTML + CSS + vanilla JS, no buil
   lives in `localStorage` and is pushed to Redis as one JSON blob, debounced ~2.5 s
   after each change. Every save also writes a timestamped backup; the 20 most recent
   are kept.
-- **On load**, the app pulls the cloud copy. If it is newer than this device's last
-  sync, it replaces local state. This is last-write-wins, not a field-level merge — avoid
-  editing on two devices at the same moment.
+- **Processed statements are never lost to sync.** Both the server and each device merge
+  statement history (union, minus deliberate deletes) instead of replacing it, so a
+  stale device can't erase a statement another device processed. Processing a statement
+  uploads it immediately and keeps retrying if the connection is down.
+- **On load and whenever the app returns to the foreground**, it pulls the cloud copy.
+  The in-progress statement, settings and rules follow whichever copy is newer — avoid
+  editing the same in-progress statement on two devices at the same moment.
 - **Receipt photos** are downscaled in the browser, sent to `/api/parse-receipt`, and
   discarded. Only the parsed line items, tax, and tip are saved on the transaction. The
   receipt total must match the charge within $0.02 before items can be assigned.
@@ -210,6 +214,7 @@ finance-splitter-cloud/
   synced state. There are no user accounts; this is a single-household tool by design.
 - State is one JSON blob capped at 1 MB. Very long histories would eventually need a
   different storage shape.
-- Sync is last-write-wins across devices.
+- The in-progress statement is last-write-wins across devices (processed statements are
+  merged and never dropped).
 - No Plaid or Amex API integration — file import only, by design.
 - Money math uses plain floating point, which is fine at this scale.

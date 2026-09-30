@@ -853,6 +853,7 @@ let state = {
   transactions: [],          // confirmed working set for current period
   pastStatements: [],        // processed statement history
   processedHashes: {},       // hash -> statementId
+  deletedStatementIds: [],   // tombstones so deletes/reopens propagate through the sync merge
   currentStatement: { name: "", periodStart: "", periodEnd: "" }
 };
 let pendingImport = null;     // staged rows awaiting confirmation (not in state)
@@ -905,6 +906,7 @@ function loadFromLocalStorage() {
     state.transactions = Array.isArray(parsed.transactions) ? parsed.transactions : [];
     state.pastStatements = Array.isArray(parsed.pastStatements) ? parsed.pastStatements : [];
     state.processedHashes = parsed.processedHashes || {};
+    state.deletedStatementIds = Array.isArray(parsed.deletedStatementIds) ? parsed.deletedStatementIds : [];
     state.currentStatement = parsed.currentStatement || { name: "", periodStart: "", periodEnd: "" };
   } catch (e) { console.warn("Load failed", e); }
 }
@@ -1593,7 +1595,7 @@ function renderPast() {
       "When you mark a statement as processed it will appear here, and its transactions will be excluded from future uploads.", "");
     return;
   }
-  $("#pastList").innerHTML = list.slice().reverse().map(st => `
+  $("#pastList").innerHTML = list.slice().sort((a, b) => (b.periodEnd || "").localeCompare(a.periodEnd || "")).map(st => `
     <div class="card" style="margin-bottom:14px">
       <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:start">
         <div>
@@ -1723,7 +1725,14 @@ async function handleCsvText(text, fileName) {
 // Parse one file into an import "part": { txns, rowCount, fileName, source, chase }.
 // Resolves null if the file is empty or the user cancels column mapping.
 async function parseImportText(text, fileName) {
-  const rows = parseCsv(text.replace(/^﻿/, ""));
+  let rows = parseCsv(text.replace(/^﻿/, ""));
+  // Amex CSVs can carry a title block (card name, account number) above the real
+  // header row — start at the header.
+  const hi = rows.findIndex(r => {
+    const n = r.map(c => String(c).trim().toLowerCase());
+    return n.includes("amount") && n.includes("description") && (n.includes("date") || n.includes("transaction date"));
+  });
+  if (hi > 0) rows = rows.slice(hi);
   if (rows.length < 2) { toast("Empty file", `No data rows found in ${fileName}.`, "err"); return null; }
   const headers = rows[0];
   let mapping = detectColumns(headers);
@@ -2011,6 +2020,14 @@ function doMarkProcessed() {
   state.currentStatement = { name: "", periodStart: "", periodEnd: "" };
   saveToLocalStorage();
   toast("Statement processed", `${stmt.name} saved to history.`, "ok");
+  // Upload now rather than after the debounce, and say so if it didn't make it —
+  // a statement that only lives on one device is how history went missing before.
+  const sync = window.FinanceSplitterSync;
+  if (sync && sync.getToken()) {
+    sync.push().then(ok => {
+      if (!ok) toast("Not synced yet", "Saved on this device. It will keep retrying the upload while the app is open.", "warn", 7000);
+    });
+  }
   launchConfetti();
   showView("past");
 }
@@ -2822,13 +2839,20 @@ function reopenStatement(id) {
   state.transactions.push(...st.transactions);
   state.currentStatement = { name: st.name, periodStart: st.periodStart, periodEnd: st.periodEnd };
   state.pastStatements.splice(idx, 1);
+  tombstoneStatement(id);
   saveToLocalStorage(); showView("review"); toast("Reopened", `${st.name} is editable again.`);
+}
+// Record a removed statement so the sync merge doesn't restore it from another copy.
+function tombstoneStatement(id) {
+  if (!Array.isArray(state.deletedStatementIds)) state.deletedStatementIds = [];
+  if (!state.deletedStatementIds.includes(id)) state.deletedStatementIds.push(id);
 }
 function deleteStatement(id) {
   const st = state.pastStatements.find(s => s.id === id); if (!st) return;
   if (!confirm(`Delete "${st.name}"? Its transactions will no longer be excluded from uploads.`)) return;
   for (const t of st.transactions) if (state.processedHashes[t.transactionHash] === id) delete state.processedHashes[t.transactionHash];
   state.pastStatements = state.pastStatements.filter(s => s.id !== id);
+  tombstoneStatement(id);
   saveToLocalStorage(); renderPast(); toast("Deleted", st.name, "warn");
 }
 
@@ -2928,8 +2952,10 @@ init();
   const DEVICE_KEY  = 'fs_device_id';
   const SYNCED_KEY  = 'fs_last_synced';
   const DEBOUNCE_MS = 2500;
+  const RETRY_MS    = 60000;
 
   let debounceTimer = null;
+  let retryTimer    = null;
   let syncStatus    = 'local-only';
 
   // ── Device ID ────────────────────────────────────────────────
@@ -2973,50 +2999,76 @@ init();
     };
   }
 
-  function unpackAndApply(cloudPayload) {
-    if (!cloudPayload || !cloudPayload.appState) return false;
-    try {
-      localStorage.setItem(APP_LS_KEY, JSON.stringify(cloudPayload.appState));
-      if (typeof loadFromLocalStorage === 'function') loadFromLocalStorage();
-      if (typeof refreshAll           === 'function') refreshAll();
-      return true;
-    } catch { return false; }
+  // ── History merge ────────────────────────────────────────────
+  // Processed statements are history: no sync direction may drop one. Statements
+  // and processed hashes are unioned (minus tombstoned deletes/reopens); every other
+  // field comes from `incoming`. Keep in sync with mergeHistory() in api/save-state.js.
+  function mergeHistory(incoming, existing) {
+    if (!existing) return incoming;
+    if (!incoming) return existing;
+    const deleted = new Set([...(existing.deletedStatementIds || []), ...(incoming.deletedStatementIds || [])]);
+    const byId = new Map();
+    for (const s of [...(existing.pastStatements || []), ...(incoming.pastStatements || [])]) {
+      if (s && s.id && !deleted.has(s.id)) byId.set(s.id, s);
+    }
+    const processedHashes = {};
+    const allHashes = { ...(existing.processedHashes || {}), ...(incoming.processedHashes || {}) };
+    for (const [hash, statementId] of Object.entries(allHashes)) {
+      if (!deleted.has(statementId)) processedHashes[hash] = statementId;
+    }
+    return { ...incoming, pastStatements: [...byId.values()], processedHashes, deletedStatementIds: [...deleted] };
+  }
+
+  // True if `a` has statements or tombstones that `b` lacks.
+  function historyMissingFrom(a, b) {
+    const ids  = new Set((b?.pastStatements || []).map(s => s.id));
+    const tomb = new Set(b?.deletedStatementIds || []);
+    return (a?.pastStatements || []).some(s => !ids.has(s.id)) ||
+           (a?.deletedStatementIds || []).some(id => !tomb.has(id));
+  }
+
+  function readLocalApp() {
+    try { return JSON.parse(localStorage.getItem(APP_LS_KEY) || 'null'); } catch { return null; }
+  }
+
+  // Write directly (not via saveToLocalStorage) so applying cloud data doesn't
+  // itself schedule another push.
+  function applyAppState(appState) {
+    localStorage.setItem(APP_LS_KEY, JSON.stringify(appState));
+    if (typeof loadFromLocalStorage === 'function') loadFromLocalStorage();
+    if (typeof refreshAll           === 'function') refreshAll();
   }
 
   // ── Merge ────────────────────────────────────────────────────
-  function applyAndMarkSynced(cloudPayload, msg) {
-    if (!unpackAndApply(cloudPayload)) return;
-    // Record this as a sync point so future loads compare timestamps
-    // instead of re-triggering the "never synced" prompt every time.
-    localStorage.setItem(SYNCED_KEY, cloudPayload.updatedAt || new Date().toISOString());
-    setSyncStatus('connected', msg);
-    updateLastSynced();
-  }
-
+  // The in-progress statement, settings and rules follow whichever copy is newer.
+  // History is always the union of both, and if the cloud was missing any of it
+  // (e.g. a statement processed while sync was down), it's pushed right away.
   function mergeCloud(cloudPayload) {
-    if (!cloudPayload) return;
-    const hasLocal  = !!localStorage.getItem(APP_LS_KEY);
+    if (!cloudPayload || !cloudPayload.appState) return;
+    const cloud     = cloudPayload.appState;
+    const local     = readLocalApp();
     const rawSynced = localStorage.getItem(SYNCED_KEY);
-    if (!hasLocal) {
-      applyAndMarkSynced(cloudPayload, 'Loaded state from cloud.');
-      return;
-    }
-    if (!rawSynced) {
-      // Never synced on this device before. There's no timestamp to compare against,
-      // so don't silently report "already in sync" — that would mask real cloud data.
-      if (confirm('This device has local data that has never been synced. Replace it with the shared cloud data?')) {
-        applyAndMarkSynced(cloudPayload, 'Loaded state from cloud.');
-      } else {
-        setSyncStatus('local-only', 'Kept local data. Push to overwrite the cloud instead.');
-      }
-      return;
-    }
-    const cloudMs  = cloudPayload.updatedAt ? Date.parse(cloudPayload.updatedAt) : 0;
-    const syncedMs = Date.parse(rawSynced);
-    if (cloudMs > syncedMs) {
-      applyAndMarkSynced(cloudPayload, 'Cloud state was newer — applied.');
+    const cloudMs   = cloudPayload.updatedAt ? Date.parse(cloudPayload.updatedAt) : 0;
+    const syncedMs  = rawSynced ? Date.parse(rawSynced) : 0;
+
+    let useCloud;
+    if (!local) useCloud = true;
+    else if (!rawSynced) {
+      useCloud = confirm('This device has an in-progress statement that has never been synced. Replace it with the shared one from the cloud?\n\nProcessed statements from both are kept either way.');
+    } else useCloud = cloudMs > syncedMs;
+
+    const merged = useCloud ? mergeHistory(cloud, local) : mergeHistory(local, cloud);
+    if (useCloud || historyMissingFrom(merged, local)) applyAppState(merged);
+    if (useCloud) localStorage.setItem(SYNCED_KEY, cloudPayload.updatedAt || new Date().toISOString());
+    updateLastSynced();
+
+    if (historyMissingFrom(merged, cloud)) {
+      pushCloud();
+    } else if (!useCloud && local && cloudMs < syncedMs) {
+      scheduleSync(); // local edits that never finished uploading
+      setSyncStatus('connected', 'Uploading local changes…');
     } else {
-      setSyncStatus('connected', cloudMs < syncedMs ? 'Local state is newer. Push to sync.' : 'Already in sync.');
+      setSyncStatus('connected', useCloud ? 'Loaded latest from cloud.' : 'Already in sync.');
     }
   }
 
@@ -3042,8 +3094,14 @@ init();
     } catch { setSyncStatus('error', 'Network error.'); return null; }
   }
 
+  function scheduleRetry() {
+    if (retryTimer || !getToken()) return;
+    retryTimer = setTimeout(() => { retryTimer = null; pushCloud(); }, RETRY_MS);
+  }
+
   async function pushCloud() {
     const token = getToken(); if (!token) { setSyncStatus('local-only', ''); return false; }
+    clearTimeout(debounceTimer);
     setSyncStatus('syncing', 'Pushing to cloud…');
     try {
       const r = await fetch('/api/save-state', {
@@ -3051,13 +3109,22 @@ init();
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body:    JSON.stringify(packState()),
       });
-      if (!r.ok) { setSyncStatus('error', syncErrorFor(r.status)); return false; }
+      if (!r.ok) {
+        setSyncStatus('error', syncErrorFor(r.status));
+        if (r.status >= 500) scheduleRetry();
+        return false;
+      }
       const d = await r.json();
       localStorage.setItem(SYNCED_KEY, d.savedAt);
+      // The server unions history with what it already had; adopt any statements
+      // another device added (re-reading local so edits made mid-request survive).
+      const serverApp = d.state && d.state.appState;
+      const local = readLocalApp();
+      if (serverApp && historyMissingFrom(serverApp, local)) applyAppState(mergeHistory(local, serverApp));
       setSyncStatus('connected', `Saved ${new Date(d.savedAt).toLocaleTimeString()}.`);
       updateLastSynced();
       return true;
-    } catch { setSyncStatus('error', 'Network error.'); return false; }
+    } catch { setSyncStatus('error', 'Network error.'); scheduleRetry(); return false; }
   }
 
   function scheduleSync() {
@@ -3170,6 +3237,12 @@ init();
     if (justPaired && typeof toast === 'function') toast('Synced', 'This device is now paired and up to date.');
     updateLastSynced();
   }
+
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState !== 'visible' || !getToken()) return;
+    const payload = await pullCloud();
+    if (payload) mergeCloud(payload);
+  });
 
   // ── Public API ───────────────────────────────────────────────
   window.fsSyncTrigger = scheduleSync;
