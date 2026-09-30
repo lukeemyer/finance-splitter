@@ -38,6 +38,10 @@ per-file "part" → `stagePendingImport(parts)` (combined dedupe + one preview) 
 `showColumnMapping` returns a Promise; dismissing the modal resolves null through
 `modalCloseHook` in `closeModal`. Also `parseCsv`, `detectColumns`, `normalizeRow`,
 `detectAmexSplitCredits`.
+Past-statement filtering: `stagePendingImport` drops any row that matches a settled
+transaction — by hash (`processedHashes`) or by `matchesPastTransaction` (same signed
+amount, date within `PAST_MATCH_DAYS`, a shared `merchantTokens` word), which catches the
+same purchase arriving from a different source (manual CSV row vs. Chase export).
 Chase import: `handleCsvText` routes files whose headers match `isChaseExport` to
 `buildChaseImport`. It flips the sign (Chase exports purchases as negatives), keeps only
 `CHASE_MERCHANT_RX` (Amazon/Costco), skips rows dated on or before

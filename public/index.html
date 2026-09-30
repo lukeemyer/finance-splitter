@@ -90,8 +90,9 @@ a { color: var(--accent); }
   position: sticky; top: 0; z-index: 50;
   display: flex; align-items: center; gap: 16px;
   padding: 12px 24px;
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  backdrop-filter: blur(10px);
+  /* Solid, not a translucent backdrop-filter blur: re-blurring the page under a
+     sticky bar on every scroll frame is a known source of scroll jank on phones. */
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 750; font-size: 18px; letter-spacing: -0.02em; }
@@ -234,17 +235,23 @@ table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: middle; }
 th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); font-weight: 650; background: var(--surface-2); position: sticky; top: 0; }
 tbody tr:last-child td { border-bottom: none; }
-tbody tr:hover { background: var(--surface-hover); }
+@media (hover: hover) { tbody tr:hover { background: var(--surface-hover); } }
 tr.row-review { box-shadow: inset 3px 0 0 var(--warn); }
 tr.row-processed, tr.row-nonexpense { opacity: .58; }
 tr.row-excluded { opacity: .68; }
 .num { font-variant-numeric: tabular-nums; }
 .compact th, .compact td { padding: 7px 12px; }
 .merchant-name { font-weight: 650; }
-.merchant-desc { font-size: 12px; color: var(--text-faint); max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.merchant-desc { font-size: 12px; color: var(--text-faint); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* quick split buttons — large and easy to tap */
 .splitbar { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+/* In the Review table the auto-sized column collapsed to one button wide, so the
+   buttons stacked one per line (~300px rows, a 50,000px page for 160 transactions).
+   A fixed width wraps them into two rows and keeps every column on screen. */
+.table-wrap .splitbar { width: 236px; }
+.table-wrap td.num { white-space: nowrap; }
+.table-wrap td .helper { display: inline-block; max-width: 130px; }
 .splitbar button {
   border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted);
   padding: 7px 11px; border-radius: 8px; font-size: 13px; font-weight: 650; min-width: 40px;
@@ -1827,6 +1834,44 @@ function buildChaseImport(dataRows, mapping, fileName) {
   } };
 }
 
+/* ---------- Past-statement matching ----------
+   A charge can reach the app in different shapes: an exact re-upload (same hash), or
+   the same purchase from another source — e.g. a Costco row typed into last month's
+   CSV by hand, then the real "COSTCO WHSE #0113" row in a Chase export, with a
+   different description, no shared reference, and a date a few days off. Either way
+   it was already settled, so it must not be imported again. */
+const PAST_MATCH_DAYS = 3;
+const GENERIC_MERCHANT_WORDS = new Set(["pending", "store", "stores", "market", "mktpl", "marketplace",
+  "whse", "online", "payment", "purchase", "order", "aplpay", "shop"]);
+
+function merchantTokens(t) {
+  const firstDescWord = String(t.description || "").toLowerCase().split(/[^a-z]+/).find(w => w.length >= 3) || "";
+  const words = `${t.merchantName || ""} ${firstDescWord}`.toLowerCase().split(/[^a-z]+/);
+  return new Set(words.filter(w => w.length >= 4 && !GENERIC_MERCHANT_WORDS.has(w)));
+}
+
+// Index every settled transaction by signed amount in cents.
+function buildPastIndex() {
+  const index = new Map();
+  for (const st of state.pastStatements) {
+    for (const t of st.transactions || []) {
+      if (!t.date || typeof t.amount !== "number") continue;
+      const cents = Math.round(t.amount * 100);
+      if (!index.has(cents)) index.set(cents, []);
+      index.get(cents).push({ time: Date.parse(t.date), tokens: merchantTokens(t) });
+    }
+  }
+  return index;
+}
+
+function matchesPastTransaction(t, index) {
+  const candidates = index.get(Math.round(t.amount * 100));
+  if (!candidates) return false;
+  const time = Date.parse(t.date), tokens = merchantTokens(t);
+  return candidates.some(c =>
+    Math.abs(c.time - time) <= PAST_MATCH_DAYS * 86400000 && [...tokens].some(w => c.tokens.has(w)));
+}
+
 // Combine parsed parts (one per file) into a single pending import.
 function stagePendingImport(parts) {
   const txns = parts.flatMap(p => p.txns);
@@ -1837,14 +1882,16 @@ function stagePendingImport(parts) {
     beforeCutoff: chaseParts.reduce((a, p) => a + p.chase.beforeCutoff, 0),
     cutoff: chaseParts[0].chase.cutoff
   } : null;
-  // detect duplicates within the upload and against current working set + processed
+  // Drop rows already settled in a past statement, duplicates within the upload, and
+  // rows already in the current working set.
   const seen = new Set();
   const currentHashes = new Set(state.transactions.map(t => t.transactionHash));
+  const pastIndex = buildPastIndex();
   let dupInFile = 0, alreadyCurrent = 0, alreadyProcessed = 0, nonExpense = 0;
   const kept = [];
   for (const t of txns) {
     classifyOnIntake(t);
-    if (t.status === "processed") alreadyProcessed++;
+    if (t.status === "processed" || matchesPastTransaction(t, pastIndex)) { alreadyProcessed++; continue; }
     if (t.kind !== "expense") nonExpense++;
     if (seen.has(t.transactionHash)) { dupInFile++; continue; }
     seen.add(t.transactionHash);
@@ -1878,7 +1925,7 @@ function renderUploadResult() {
         ${stat("Total imported", money(p.total))}
         ${stat("Duplicates in file", p.dupInFile)}
         ${stat("Already in current set", p.alreadyCurrent)}
-        ${stat("Already processed", p.alreadyProcessed)}
+        ${stat("Skipped: in past statements", p.alreadyProcessed)}
         ${stat("Credits/refunds/payments", p.nonExpense)}
         ${p.chase ? stat("Skipped: not Amazon/Costco", p.chase.otherMerchants) : ""}
         ${p.chase && p.chase.cutoff ? stat("Skipped: on/before " + fmtDate(p.chase.cutoff), p.chase.beforeCutoff) : ""}

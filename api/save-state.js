@@ -7,7 +7,7 @@ const CORS_HEADERS = {
 };
 
 const MAX_BODY_BYTES = 1024 * 1024; // 1 MB
-const MAX_BACKUPS = 20;
+const MAX_BACKUPS = 500; // raised from 20 on 2026-09-29 while recovering lost statements
 const STATE_KEY = 'finance-splitter:state';
 const MAX_ATTEMPTS = 8;
 
